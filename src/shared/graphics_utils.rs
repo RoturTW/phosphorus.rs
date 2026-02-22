@@ -85,33 +85,6 @@ pub fn render_text(text: &str, pos: Vec2, font_size: f32, color: Color) {
 }
 
 pub async fn load_default_font() -> Font {
-    let paths: &[&str] = if cfg!(target_os = "windows") {
-        &[
-            "C:/Windows/Fonts/segoeui.ttf",
-            "C:/Windows/Fonts/arial.ttf",
-        ]
-    } else if cfg!(target_os = "macos") {
-        &[
-            "/System/Library/Fonts/SFNS.ttf",
-            "/System/Library/Fonts/Helvetica.ttc",
-            "/Library/Fonts/Arial.ttf",
-        ]
-    } else {
-        &[
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-            "/usr/share/fonts/truetype/ubuntu/Ubuntu-Regular.ttf",
-            "/usr/share/fonts/truetype/lato/Lato-Medium.ttf",
-        ]
-    };
-    
-    for path in paths {
-        if std::path::Path::new(path).exists() {
-            if let Ok(font) = load_ttf_font(path).await {
-                return font;
-            }
-        }
-    }
-    
-    panic!("Failed to load any default system font");
+    let bytes = include_bytes!("../../assets/font/NotoSans-Regular.ttf");
+    load_ttf_font_from_bytes(bytes).unwrap()
 }
