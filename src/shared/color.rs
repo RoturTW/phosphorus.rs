@@ -1,6 +1,6 @@
-use raylib::color::Color as RLColor;
+use macroquad::color::Color as MQColor;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -14,6 +14,9 @@ impl Color {
     }
     pub fn hex(input: &str) -> Result<Color, &'static str> {
         parse_hex_color(input)
+    }
+    pub fn to_mq(self) -> MQColor {
+        self.into()
     }
 }
 
@@ -37,24 +40,19 @@ pub fn parse_hex_color(input: &str) -> Result<Color, &'static str> {
     }
 }
 
-// raylib utils
-impl From<Color> for RLColor {
-    fn from(value: Color) -> Self {
-        RLColor {
-            r: value.r,
-            g: value.g,
-            b: value.b,
-            a: value.a,
-        }
+impl From<Color> for MQColor {
+    fn from(c: Color) -> Self {
+        MQColor::from_rgba(c.r, c.g, c.b, c.a)
     }
 }
-impl From<RLColor> for Color {
-    fn from(value: RLColor) -> Self {
+
+impl From<MQColor> for Color {
+    fn from(c: MQColor) -> Self {
         Color {
-            r: value.r,
-            g: value.g,
-            b: value.b,
-            a: value.a,
+            r: (c.r * 255.0) as u8,
+            g: (c.g * 255.0) as u8,
+            b: (c.b * 255.0) as u8,
+            a: (c.a * 255.0) as u8,
         }
     }
 }

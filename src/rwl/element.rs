@@ -10,7 +10,7 @@ use crate::shared::graphics_utils::Rounding;
 use crate::shared::theme::Theme;
 use crate::shared::vec::Vec2;
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 pub type UpdateCtx<'a, 'b> = (&'a mut GLDrawHandle<'b>, &'b Theme);
 type Children = Vec<NodeWrapper>;
@@ -613,7 +613,8 @@ fn update_element(
     let mut height = 2.0 * *size;
     
     for line in &lines {
-        let line_width = update_ctx.0.text_line_width(line) as f32 * *spacing * *size / 5.0;
+        // TODO: spacing
+        let line_width = update_ctx.0.text_line_width(line, *size * 2.0);
         width = width.max(line_width);
     }
     let positioned_area = position_element(area, header, Vec2(width, height), margin, context)?;

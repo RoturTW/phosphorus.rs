@@ -1,102 +1,109 @@
-use raylib;
-use raylib::color::Color as RLColor;
-use raylib::ffi::Vector2;
-use raylib::prelude::{RaylibDraw, TraceLogLevel};
+use macroquad::prelude::*;
 use crate::shared::area::Area;
-use crate::shared::color::{Color};
-use crate::shared::graphics_utils::{draw_rectangle_rounded_corners, measure_text, Rounding};
-use crate::shared::vec::{Vec2};
+use crate::shared::color::Color;
+use crate::shared::graphics_utils::{draw_rectangle_rounded_corners, load_default_font, Rounding};
+use crate::shared::vec::Vec2;
 
 pub struct GLCtx {
-    pub rl: raylib::RaylibHandle,
-    pub thread: raylib::RaylibThread
+    pub font: Font,
+    pub running: bool,
 }
 
 impl GLCtx {
+    pub async fn new() -> Self {
+        let font = load_default_font().await;
+        Self {
+            running: true,
+            font
+        }
+    }
+    
+    pub fn finish_frame(&self) {
+    
+    }
+    
     pub fn running(&self) -> bool {
-        !self.rl.window_should_close()
+        self.running
     }
     
-    pub fn width(&self) -> i32 {
-        self.rl.get_render_width()
-    }
-    pub fn height(&self) -> i32 {
-        self.rl.get_render_height()
+    pub fn width(&self) -> f32 {
+        screen_width()
     }
     
-    pub fn begin_drawing(&'_ mut self) -> GLDrawHandle<'_> {
+    pub fn height(&self) -> f32 {
+        screen_height()
+    }
+    
+    pub fn begin_drawing(&mut self) -> GLDrawHandle<'_> {
         GLDrawHandle {
-            handle: self.rl.begin_drawing(&self.thread)
+            font: &self.font,
+            font_size: 16.0,
+            running: &mut self.running
         }
     }
 }
 
 pub struct GLDrawHandle<'a> {
-    pub handle: raylib::drawing::RaylibDrawHandle<'a>
+    pub font: &'a Font,
+    pub font_size: f32,
+    running: &'a mut bool,
 }
 
 impl GLDrawHandle<'_> {
-    pub fn clear_background(&mut self, color: Color) {
-        self.handle.clear_background(
-            <Color as Into<RLColor>>::into(color.into())
-        );
+    pub fn clear_background(&self, color: Color) {
+        clear_background(color.into());
     }
     
-    pub fn draw_rectangle(&mut self, area: &Area, color: Color) {
-        let start: Vector2 = area.a.into();
-        let dimensions: Vector2 = area.dimensions().into();
-        self.handle.draw_rectangle_lines(
-            start.x as i32,
-            start.y as i32,
-            dimensions.x as i32,
-            dimensions.y as i32,
-            <Color as Into<RLColor>>::into(color.into())
-        );
+    pub fn draw_rectangle(&self, area: &Area, color: Color) {
+        let start: Vec2 = area.a.into();
+        let dim: Vec2 = area.dimensions().into();
+        let mq: macroquad::color::Color = color.into();
+        
+        let x = start.0;
+        let y = start.1;
+        let w = dim.0;
+        let h = dim.1;
+        
+        draw_line(x,     y,     x + w, y,     1.0, mq);
+        draw_line(x + w, y,     x + w, y + h, 1.0, mq);
+        draw_line(x + w, y + h, x,     y + h, 1.0, mq);
+        draw_line(x,     y + h, x,     y,     1.0, mq);
     }
-    pub fn draw_filled_rectangle(&mut self, area: &Area, r: &Rounding, color: Color) {
-        draw_rectangle_rounded_corners(
-            &mut self.handle,
-            area.a.into(),
-            area.b.into(),
-            r,
-            color.into()
-        );
+    
+    pub fn draw_filled_rectangle(&self, area: &Area, r: &Rounding, color: Color) {
+        let start: Vec2 = area.a.into();
+        let dim: Vec2 = area.dimensions().into();
+        draw_rectangle_rounded_corners(start.0, start.1, dim.0, dim.1, r, color);
     }
     
     pub fn draw_text(&mut self, text: &str, pos: Vec2, font_size: f32, color: Color) {
-        self.handle.draw_text(
+        draw_text_ex(
             text,
-            pos.0 as i32,
-            pos.1 as i32,
-            font_size as i32,
-            <Color as Into<RLColor>>::into(color.into())
+            pos.0, pos.1 + font_size,
+            TextParams {
+                font: Some(&self.font),
+                font_size: font_size as u16,
+                color: color.into(),
+                ..Default::default()
+            }
         );
     }
     
-    pub fn text_line_width(&self, text: &str) -> i32 {
-        Self::text_line_width_raw(text)
-    }
-    pub fn text_line_height(&self, _text: &str) -> i32 {
-        10
+    pub fn text_line_width(&self, text: &str, font_size: f32) -> f32 {
+        measure_text(text, Some(&self.font), font_size as u16, 1.0).width
     }
     
-    pub fn text_line_width_raw(text: &str) -> i32 {
-        measure_text(text, 1)
+    pub fn text_line_height(&self, _text: &str) -> f32 {
+        let m = measure_text("X", None, self.font_size as u16, 1.0);
+        m.height
     }
 }
 
-pub fn init() -> GLCtx {
-    let (mut rl, thread) = raylib::init()
-        .size(640, 480)
-        .resizable()
-        .title("phosphorus maybe :3")
-        .log_level(TraceLogLevel::LOG_ERROR)
-        .build();
-    
-    rl.set_target_fps(60);
-    
-    GLCtx {
-        rl,
-        thread
+pub fn window_conf() -> macroquad::window::Conf {
+    macroquad::window::Conf {
+        window_title: "phosphorus maybe :3".to_string(),
+        window_width: 640,
+        window_height: 480,
+        ..Default::default()
     }
 }

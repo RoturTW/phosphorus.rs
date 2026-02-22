@@ -1,132 +1,117 @@
-use raylib::prelude::*;
+use macroquad::prelude::*;
+use crate::shared::color::Color;
+use crate::shared::vec::Vec2;
 
 #[derive(Debug, Clone)]
 pub struct Rounding {
-    tl: f32,
-    tr: f32,
-    bl: f32,
-    br: f32
+    pub tl: f32,
+    pub tr: f32,
+    pub bl: f32,
+    pub br: f32,
 }
 
 impl Default for Rounding {
-    fn default() -> Self {
-        0.0.into()
-    }
+    fn default() -> Self { 0.0.into() }
 }
 
 impl From<f32> for Rounding {
     fn from(value: f32) -> Self {
-        Rounding {
-            tl: value,
-            tr: value,
-            bl: value,
-            br: value
-        }
+        Rounding { tl: value, tr: value, bl: value, br: value }
     }
 }
 
 pub fn draw_rectangle_rounded_corners(
-    handle: &mut RaylibDrawHandle,
-    a: Vector2,
-    b: Vector2,
-    rounding: &Rounding,
-    color: Color,
+    x: f32, y: f32, width: f32, height: f32,
+    rounding: &Rounding, color: Color,
 ) {
-    let x = a.x.min(b.x);
-    let y = a.y.min(b.y);
-    let width = (a.x - b.x).abs();
-    let height = (a.y - b.y).abs();
+    let mq: macroquad::color::Color = color.into();
     
-    let r_top_left = rounding.tl.min(width / 2.0).min(height / 2.0);
-    let r_top_right = rounding.tr.min(width / 2.0).min(height / 2.0);
-    let r_bottom_right = rounding.br.min(width / 2.0).min(height / 2.0);
-    let r_bottom_left = rounding.bl.min(width / 2.0).min(height / 2.0);
+    let tl = rounding.tl.min(width / 2.0).min(height / 2.0);
+    let tr = rounding.tr.min(width / 2.0).min(height / 2.0);
+    let br = rounding.br.min(width / 2.0).min(height / 2.0);
+    let bl = rounding.bl.min(width / 2.0).min(height / 2.0);
     
-    // Center
-    handle.draw_rectangle(
-        (x + r_top_left) as i32,
-        (y + r_top_left) as i32,
-        (width - r_top_left - r_top_right) as i32,
-        (height - r_top_left - r_bottom_left) as i32,
-        color,
-    );
+    // center
+    draw_rectangle(x + tl, y + tl, width - tl - tr, height - tl - bl, mq);
     
-    // Sides
-    handle.draw_rectangle(
-        x as i32,
-        (y + r_top_left) as i32,
-        r_top_left as i32,
-        (height - r_top_left - r_bottom_left) as i32,
-        color,
-    );
+    draw_rectangle(x, y + tl, tl, height - tl - bl, mq);
+    draw_rectangle(x + width - tr, y + tr, tr, height - tr - br, mq);
+    draw_rectangle(x + tl, y, width - tl - tr, tl, mq);
+    draw_rectangle(x + bl, y + height - bl, width - bl - br, bl, mq);
     
-    handle.draw_rectangle(
-        (x + width - r_top_right) as i32,
-        (y + r_top_right) as i32,
-        r_top_right as i32,
-        (height - r_top_right - r_bottom_right) as i32,
-        color,
-    );
-    
-    handle.draw_rectangle(
-        (x + r_top_left) as i32,
-        y as i32,
-        (width - r_top_left - r_top_right) as i32,
-        r_top_left as i32,
-        color,
-    );
-    
-    handle.draw_rectangle(
-        (x + r_bottom_left) as i32,
-        (y + height - r_bottom_left) as i32,
-        (width - r_bottom_left - r_bottom_right) as i32,
-        r_bottom_left as i32,
-        color,
-    );
-    
-    // Corners
-    handle.draw_circle_sector(
-        Vector2::new(x + r_top_left, y + r_top_left),
-        r_top_left,
-        180.0,
-        270.0,
-        16,
-        color,
-    );
-    
-    handle.draw_circle_sector(
-        Vector2::new(x + width - r_top_right, y + r_top_right),
-        r_top_right,
-        270.0,
-        360.0,
-        16,
-        color,
-    );
-    
-    handle.draw_circle_sector(
-        Vector2::new(x + width - r_bottom_right, y + height - r_bottom_right),
-        r_bottom_right,
-        0.0,
-        90.0,
-        16,
-        color,
-    );
-    
-    handle.draw_circle_sector(
-        Vector2::new(x + r_bottom_left, y + height - r_bottom_left),
-        r_bottom_left,
-        90.0,
-        180.0,
-        16,
-        color,
-    );
+    // corners
+    draw_corner(x + tl,         y + tl,          tl, 180.0, 270.0, mq);
+    draw_corner(x + width - tr, y + tr,           tr, 270.0, 360.0, mq);
+    draw_corner(x + width - br, y + height - br,  br,   0.0,  90.0, mq);
+    draw_corner(x + bl,         y + height - bl,  bl,  90.0, 180.0, mq);
 }
 
-use raylib::ffi;
-use std::ffi::CString;
-
-pub fn measure_text(text: &str, font_size: i32) -> i32 {
-    let c_text = CString::new(text).unwrap();
-    unsafe { ffi::MeasureText(c_text.as_ptr(), font_size) }
+fn draw_corner(
+    cx: f32, cy: f32, radius: f32,
+    start_deg: f32, end_deg: f32,
+    color: macroquad::color::Color,
+) {
+    if radius <= 0.0 {
+        return;
+    }
+    let segments = 16;
+    let step = (end_deg - start_deg) / segments as f32;
+    
+    for i in 0..segments {
+        let a1 = (start_deg + step * i as f32).to_radians();
+        let a2 = (start_deg + step * (i + 1) as f32).to_radians();
+        
+        let x1 = cx + radius * a1.cos();
+        let y1 = cy + radius * a1.sin();
+        let x2 = cx + radius * a2.cos();
+        let y2 = cy + radius * a2.sin();
+        
+        draw_triangle(
+            macroquad::math::Vec2::new(cx, cy),
+            macroquad::math::Vec2::new(x1, y1),
+            macroquad::math::Vec2::new(x2, y2),
+            color,
+        );
+    }
 }
 
+pub fn measure_text_width(text: &str, font_size: f32) -> f32 {
+    let m = measure_text(text, None, font_size as u16, 1.0);
+    m.width
+}
+
+pub fn render_text(text: &str, pos: Vec2, font_size: f32, color: Color) {
+    draw_text(text, pos.0, pos.1 + font_size, font_size, color.into());
+}
+
+pub async fn load_default_font() -> Font {
+    let paths: &[&str] = if cfg!(target_os = "windows") {
+        &[
+            "C:/Windows/Fonts/segoeui.ttf",
+            "C:/Windows/Fonts/arial.ttf",
+        ]
+    } else if cfg!(target_os = "macos") {
+        &[
+            "/System/Library/Fonts/SFNS.ttf",
+            "/System/Library/Fonts/Helvetica.ttc",
+            "/Library/Fonts/Arial.ttf",
+        ]
+    } else {
+        &[
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+            "/usr/share/fonts/truetype/ubuntu/Ubuntu-Regular.ttf",
+            "/usr/share/fonts/truetype/lato/Lato-Medium.ttf",
+        ]
+    };
+    
+    for path in paths {
+        if std::path::Path::new(path).exists() {
+            if let Ok(font) = load_ttf_font(path).await {
+                return font;
+            }
+        }
+    }
+    
+    panic!("Failed to load any default system font");
+}
