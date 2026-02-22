@@ -46,7 +46,7 @@ fn app() {
         });
         
         if last_size != Vec2(width, height) {
-            //alet update_time = Instant::now();
+            //let update_time = Instant::now();
             doc.rwl_instance.update((&mut handle, &theme), &Area {
                 a: Vec2(0.0, 0.0),
                 b: Vec2(width, height)

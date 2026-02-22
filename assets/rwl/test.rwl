@@ -1,7 +1,10 @@
 root [padding=10] {
     frame [Horizontal] {
         section [size=100, color=theme:prim, rounding=10, margin_r=10] {
-
+            "hi" [anchor="t", margin=20],
+            "hi" [margin=20],
+            "hi" [margin=20],
+            "hi" [margin=20],
         },
         section [] {
             "colon three" [size=10, anchor="tr", color=theme:text],

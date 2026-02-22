@@ -38,19 +38,23 @@ pub fn parse_hex_color(input: &str) -> Result<Color, &'static str> {
 }
 
 // raylib utils
-pub fn col_to_raylib(col: Color) -> RLColor {
-    RLColor {
-        r: col.r,
-        g: col.g,
-        b: col.b,
-        a: col.a,
+impl From<Color> for RLColor {
+    fn from(value: Color) -> Self {
+        RLColor {
+            r: value.r,
+            g: value.g,
+            b: value.b,
+            a: value.a,
+        }
     }
 }
-pub fn raylib_to_col(col: RLColor) -> Color {
-    Color {
-        r: col.r,
-        g: col.g,
-        b: col.b,
-        a: col.a,
+impl From<RLColor> for Color {
+    fn from(value: RLColor) -> Self {
+        Color {
+            r: value.r,
+            g: value.g,
+            b: value.b,
+            a: value.a,
+        }
     }
 }

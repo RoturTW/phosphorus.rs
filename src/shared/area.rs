@@ -28,6 +28,13 @@ impl Area {
         self.b.1 - self.a.1
     }
     
+    pub fn width_total(&self) -> f32 {
+        self.b.0 + self.a.0
+    }
+    pub fn height_total(&self) -> f32 {
+        self.b.1 + self.a.1
+    }
+    
     pub fn pad(&self, amount: Area) -> Area {
         Area {
             a: Vec2 (
@@ -42,6 +49,19 @@ impl Area {
     }
     pub fn margin(&self, amount: Area) -> Area {
         self.pad(amount.flip())
+    }
+    
+    pub fn left(&self) -> f32 {
+        self.a.0
+    }
+    pub fn right(&self) -> f32 {
+        self.b.0
+    }
+    pub fn top(&self) -> f32 {
+        self.a.1
+    }
+    pub fn bottom(&self) -> f32 {
+        self.b.1
     }
     
     pub fn flip(&self) -> Area {

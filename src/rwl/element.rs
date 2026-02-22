@@ -10,7 +10,7 @@ use crate::shared::graphics_utils::Rounding;
 use crate::shared::theme::Theme;
 use crate::shared::vec::Vec2;
 
-const DEBUG: bool = false;
+const DEBUG: bool = true;
 
 pub type UpdateCtx<'a, 'b> = (&'a mut GLDrawHandle<'b>, &'b Theme);
 type Children = Vec<NodeWrapper>;
@@ -432,9 +432,8 @@ impl Node {
                 
                 render_data,
             } => {
-                let area = parent_area.pad(header.get_margin());
                 
-                let data = update_element(update_ctx, &area, header, value, context)?;
+                let data = update_element(update_ctx, &parent_area, header, value, context)?;
                 
                 *render_data = Some(data);
             }
@@ -607,6 +606,8 @@ fn update_element(
     
     let alignment = get_alignment(header, Alignment::from(context.anchor_x))?;
     
+    let margin = header.get_margin();
+    
     // get size
     let mut width: f32 = 0.0;
     let mut height = 2.0 * *size;
@@ -615,7 +616,7 @@ fn update_element(
         let line_width = update_ctx.0.text_line_width(line) as f32 * *spacing * *size / 5.0;
         width = width.max(line_width);
     }
-    let positioned_area = position_element(area, header, Vec2(width, height), context)?;
+    let positioned_area = position_element(area, header, Vec2(width, height), margin, context)?;
     
     let color = header.expect("color", "color")?;
     if let Some(color) = color {
@@ -629,6 +630,7 @@ fn position_element(
     area: &Area,
     header: &Header,
     size: Vec2,
+    margin: Area,
     context: &mut ContainerContext
 ) -> Result<Area, Error> {
     // TODO: handle margin and maybe padding?
@@ -650,18 +652,18 @@ fn position_element(
     let x = if let Some(x_anchor) = anchor.0 {
         context.anchor_x = x_anchor;
         match x_anchor {
-            AnchorX::Left => area.a.0,
+            AnchorX::Left => area.a.0 + margin.left(),
             AnchorX::Center => area.center().0,
-            AnchorX::Right => area.b.0,
+            AnchorX::Right => area.b.0 + margin.right(),
         }
     } else { context.pos.unwrap().0 };
     
     let mut y = if let Some(y_anchor) = anchor.1 {
         context.anchor_y = y_anchor;
         match y_anchor {
-            AnchorY::Top => area.a.1,
+            AnchorY::Top => area.a.1 + margin.top(),
             AnchorY::Center => area.center().1,
-            AnchorY::Bottom => area.b.1,
+            AnchorY::Bottom => area.b.1 + margin.bottom(),
         }
     } else { context.pos.unwrap().1 };
     
@@ -676,7 +678,7 @@ fn position_element(
         AnchorY::Bottom => 1.0
     };
     
-    context.pos = Some(Vec2(x,y - size.1 * match context.anchor_y {
+    context.pos = Some(Vec2(x,y - (size.1 + margin.top() + margin.bottom()) * match context.anchor_y {
         AnchorY::Top | AnchorY::Center => -1.0,
         AnchorY::Bottom => 1.0
     }));

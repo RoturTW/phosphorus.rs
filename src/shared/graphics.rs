@@ -1,9 +1,11 @@
 use raylib;
+use raylib::color::Color as RLColor;
+use raylib::ffi::Vector2;
 use raylib::prelude::{RaylibDraw, TraceLogLevel};
 use crate::shared::area::Area;
-use crate::shared::color::{col_to_raylib, Color};
+use crate::shared::color::{Color};
 use crate::shared::graphics_utils::{draw_rectangle_rounded_corners, measure_text, Rounding};
-use crate::shared::vec::{vec_to_raylib, Vec2};
+use crate::shared::vec::{Vec2};
 
 pub struct GLCtx {
     pub rl: raylib::RaylibHandle,
@@ -35,27 +37,29 @@ pub struct GLDrawHandle<'a> {
 
 impl GLDrawHandle<'_> {
     pub fn clear_background(&mut self, color: Color) {
-        self.handle.clear_background(col_to_raylib(color));
+        self.handle.clear_background(
+            <Color as Into<RLColor>>::into(color.into())
+        );
     }
     
     pub fn draw_rectangle(&mut self, area: &Area, color: Color) {
-        let start = vec_to_raylib(area.a);
-        let dimensions = vec_to_raylib(area.dimensions());
+        let start: Vector2 = area.a.into();
+        let dimensions: Vector2 = area.dimensions().into();
         self.handle.draw_rectangle_lines(
             start.x as i32,
             start.y as i32,
             dimensions.x as i32,
             dimensions.y as i32,
-            col_to_raylib(color)
+            <Color as Into<RLColor>>::into(color.into())
         );
     }
     pub fn draw_filled_rectangle(&mut self, area: &Area, r: &Rounding, color: Color) {
         draw_rectangle_rounded_corners(
             &mut self.handle,
-            vec_to_raylib(area.a),
-            vec_to_raylib(area.b),
+            area.a.into(),
+            area.b.into(),
             r,
-            col_to_raylib(color)
+            color.into()
         );
     }
     
@@ -65,7 +69,7 @@ impl GLDrawHandle<'_> {
             pos.0 as i32,
             pos.1 as i32,
             font_size as i32,
-            col_to_raylib(color)
+            <Color as Into<RLColor>>::into(color.into())
         );
     }
     

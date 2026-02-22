@@ -1,5 +1,6 @@
 use std::ops;
-use raylib::prelude::Vector2;
+use raylib::ffi::Vector2 as FFIVector2;
+use raylib::prelude::Vector2 as PreludeVector2;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec2 (pub f32, pub f32);
@@ -25,12 +26,29 @@ impl ops::Add<Vec2> for Vec2 {
 }
 
 // raylib utils
-pub fn vec_to_raylib(vec: Vec2) -> Vector2 {
-    Vector2 {
-        x: vec.0,
-        y: vec.1
+impl From<Vec2> for FFIVector2 {
+    fn from(value: Vec2) -> Self {
+        FFIVector2 {
+            x: value.0,
+            y: value.1
+        }
     }
 }
-pub fn raylib_to_vec(vec: Vector2) -> Vec2 {
-    Vec2(vec.x, vec.y)
+impl From<FFIVector2> for Vec2 {
+    fn from(value: FFIVector2) -> Self {
+        Vec2(value.x, value.y)
+    }
+}
+impl From<Vec2> for PreludeVector2 {
+    fn from(value: Vec2) -> Self {
+        PreludeVector2 {
+            x: value.0,
+            y: value.1
+        }
+    }
+}
+impl From<PreludeVector2> for Vec2 {
+    fn from(value: PreludeVector2) -> Self {
+        Vec2(value.x, value.y)
+    }
 }
