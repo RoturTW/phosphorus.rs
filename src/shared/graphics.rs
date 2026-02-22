@@ -18,18 +18,22 @@ impl GLCtx {
         }
     }
     
+    #[allow(clippy::unused_self)]
     pub fn finish_frame(&self) {
     
     }
     
+    #[allow(clippy::unused_self)]
     pub fn running(&self) -> bool {
         self.running
     }
     
+    #[allow(clippy::unused_self)]
     pub fn width(&self) -> f32 {
         screen_width()
     }
     
+    #[allow(clippy::unused_self)]
     pub fn height(&self) -> f32 {
         screen_height()
     }
@@ -50,13 +54,15 @@ pub struct GLDrawHandle<'a> {
 }
 
 impl GLDrawHandle<'_> {
+    #[allow(clippy::unused_self)]
     pub fn clear_background(&self, color: Color) {
         clear_background(color.into());
     }
     
+    #[allow(clippy::unused_self)]
     pub fn draw_rectangle(&self, area: &Area, color: Color) {
-        let start: Vec2 = area.a.into();
-        let dim: Vec2 = area.dimensions().into();
+        let start: Vec2 = area.a;
+        let dim: Vec2 = area.dimensions();
         let mq: macroquad::color::Color = color.into();
         
         let x = start.0;
@@ -70,9 +76,10 @@ impl GLDrawHandle<'_> {
         draw_line(x,     y + h, x,     y,     1.0, mq);
     }
     
+    #[allow(clippy::unused_self)]
     pub fn draw_filled_rectangle(&self, area: &Area, r: &Rounding, color: Color) {
-        let start: Vec2 = area.a.into();
-        let dim: Vec2 = area.dimensions().into();
+        let start: Vec2 = area.a;
+        let dim: Vec2 = area.dimensions();
         draw_rectangle_rounded_corners(start.0, start.1, dim.0, dim.1, r, color);
     }
     
@@ -81,7 +88,7 @@ impl GLDrawHandle<'_> {
             text,
             pos.0, pos.1 + font_size,
             TextParams {
-                font: Some(&self.font),
+                font: Some(self.font),
                 font_size: font_size as u16,
                 color: color.into(),
                 ..Default::default()
@@ -90,7 +97,7 @@ impl GLDrawHandle<'_> {
     }
     
     pub fn text_line_width(&self, text: &str, font_size: f32) -> f32 {
-        measure_text(text, Some(&self.font), font_size as u16, 1.0).width
+        measure_text(text, Some(self.font), font_size as u16, 1.0).width
     }
     
     pub fn text_line_height(&self, _text: &str) -> f32 {

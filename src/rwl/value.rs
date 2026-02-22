@@ -33,17 +33,8 @@ impl Value {
             Value::Percentage(..) => "percentage",
             Value::Color(..) => "color",
             
-            Value::Property(PropertyPath::Theme(ThemeProperty::Back)) =>
-                "color",
-            Value::Property(PropertyPath::Theme(ThemeProperty::Prim)) =>
-                "color",
-            Value::Property(PropertyPath::Theme(ThemeProperty::Seco)) =>
-                "color",
-            Value::Property(PropertyPath::Theme(ThemeProperty::Tert)) =>
-                "color",
-            Value::Property(PropertyPath::Theme(ThemeProperty::Text)) =>
-                "color",
-            Value::Property(PropertyPath::Theme(ThemeProperty::Accent)) =>
+            #[allow(clippy::match_same_arms)]
+            Value::Property(PropertyPath::Theme(..)) =>
                 "color"
         }
     }

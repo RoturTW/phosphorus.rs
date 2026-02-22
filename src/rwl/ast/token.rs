@@ -16,7 +16,7 @@ impl Debug for Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.token_type.to_string())
+        write!(f, "{}", self.token_type)
     }
 }
 
@@ -85,6 +85,7 @@ pub enum TokenType {
     Quote, DoubleQuote, BackQuote,
     
     Space, Newline,
+    #[allow(clippy::upper_case_acronyms)]
     EOF,
     
     Text(String)
@@ -125,7 +126,7 @@ impl From<char> for TokenType {
             
             ' ' => TokenType::Space, '\n' => TokenType::Newline,
             
-            _ => panic!("unknown TokenType {}", value)
+            _ => panic!("unknown TokenType {value}")
         }
     }
 }
@@ -149,7 +150,7 @@ impl Debug for TokenType {
             TokenType::Newline => write!(f, "<newline>"),
             TokenType::EOF => write!(f, "<EOF>"),
             
-            _ => write!(f, "`{}`", self.to_string())
+            _ => write!(f, "`{self}`")
         }
     }
 }
@@ -168,7 +169,7 @@ impl Display for TokenType {
             TokenType::ExclamationMark => "!", TokenType::QuestionMark => "?",
             TokenType::BackSlash => "\\", TokenType::Pipe => "|", TokenType::Equal => "=",
             
-            TokenType::Quote => "'", TokenType::DoubleQuote => "\"", TokenType::BackQuote => "'",
+            TokenType::Quote => "'", TokenType::DoubleQuote => "\"", TokenType::BackQuote => "`",
             
             TokenType::Space => " ", TokenType::Newline => "\n",
             TokenType::EOF => "",

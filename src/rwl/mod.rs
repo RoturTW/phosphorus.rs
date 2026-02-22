@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-use crate::rwl::ast::parser::*;
-use crate::rwl::element::*;
-use crate::rwl::value::*;
-use crate::shared::area::*;
-use crate::shared::graphics::*;
+use crate::rwl::ast::parser::{AstNode, Parser, tokenise, AstHeader, AstHeaderItem, AstValue};
+use crate::rwl::element::{NodeWrapper, Node, Header, UpdateCtx, ContainerContext};
+use crate::rwl::value::Value;
+use crate::shared::area::Area;
+use crate::shared::graphics::GLDrawHandle;
 
 pub mod ast;
 pub mod element;
@@ -24,7 +24,7 @@ impl RWLInstance {
         }
     }
     
-    pub fn parse(&mut self, src: String) {
+    pub fn parse(&mut self, src: &str) {
         let mut parser = Parser {
             pointer: 0,
             tokens: tokenise(src)
@@ -45,13 +45,13 @@ impl RWLInstance {
     pub fn instance(&mut self) {
         self.root = Self::instance_node(&self.ast);
     }
-    fn instance_nodes<'a>(nodes: &[AstNode]) -> Vec<NodeWrapper> {
+    fn instance_nodes(nodes: &[AstNode]) -> Vec<NodeWrapper> {
         nodes
             .iter()
             .map(RWLInstance::instance_node)
             .collect()
     }
-    fn instance_node<'a>(node: &AstNode) -> NodeWrapper {
+    fn instance_node(node: &AstNode) -> NodeWrapper {
         match node {
             AstNode::Empty => NodeWrapper::new(
                 Node::new_empty()

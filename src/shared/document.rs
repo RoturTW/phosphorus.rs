@@ -6,7 +6,7 @@ pub struct Document {
 }
 
 impl Document {
-    pub fn new<'a>() -> Document {
+    pub fn new() -> Document {
         Document {
             rwl_instance: RWLInstance::new()
         }

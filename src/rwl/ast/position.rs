@@ -43,12 +43,12 @@ impl Sub<usize> for Position {
 
 impl AddAssign<usize> for Position {
     fn add_assign(&mut self, rhs: usize) {
-        *self = self.clone() + rhs
+        *self = self.clone() + rhs;
     }
 }
 
 impl SubAssign<usize> for Position {
     fn sub_assign(&mut self, rhs: usize) {
-        *self = self.clone() - rhs
+        *self = self.clone() - rhs;
     }
 }

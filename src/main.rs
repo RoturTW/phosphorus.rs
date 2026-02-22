@@ -29,7 +29,7 @@ fn window_conf() -> macroquad::window::Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut doc = Document::new();
-    doc.rwl_instance.parse(read_file(&PathBuf::from("./assets/rwl/test.rwl")).unwrap());
+    doc.rwl_instance.parse(&read_file(&PathBuf::from("./assets/rwl/test.rwl")).unwrap());
     doc.rwl_instance.instance();
     
     let mut gl_ctx = shared::graphics::GLCtx::new().await;

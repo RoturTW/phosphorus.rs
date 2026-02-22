@@ -11,17 +11,17 @@ pub enum Error {
     
     // ast
     UnexpectedToken {
-        token: Token,
-        range: Range
+        token: Box<Token>,
+        range: Box<Range>
     },
     Expected {
         wanted: Vec<TokenType>,
-        got: Token,
-        range: Range
+        got: Box<Token>,
+        range: Box<Range>
     },
     ExpectedText {
-        got: Token,
-        range: Range
+        got: Box<Token>,
+        range: Box<Range>
     },
     CouldntParseNum,
     InvalidAttributeKey,
@@ -49,18 +49,18 @@ impl Display for Error {
             
             // ast
             Error::UnexpectedToken { token, .. } =>
-                write!(f, "unexpected token '{}'", token.to_string()),
+                write!(f, "unexpected token '{token}'"),
             Error::Expected { wanted, got, ..} =>
                 write!(f, "expected {}, got '{}'",
                        wanted
-                           .into_iter()
-                           .map(|t| format!("'{}'", t.to_string()))
+                           .iter()
+                           .map(|t| format!("'{t}'"))
                            .collect::<Vec<String>>()
                            .join(" or "),
-                       got.to_string()
+                       got
                 ),
             Error::ExpectedText { got, ..} =>
-                write!(f, "expected text, got {}", got.to_string()),
+                write!(f, "expected text, got {got}"),
             Error::CouldntParseNum =>
                 write!(f, "couldnt parse num"),
             Error::InvalidAttributeKey =>

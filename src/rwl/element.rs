@@ -1,16 +1,16 @@
 use std::cmp::PartialEq;
 use std::collections::HashMap;
 use crate::rwl::ast::parser::{BlockType};
-use crate::rwl::value::*;
-use crate::rwl::error::*;
-use crate::shared::area::*;
-use crate::shared::color::*;
-use crate::shared::graphics::*;
+use crate::rwl::value::Value;
+use crate::rwl::error::{Error, ErrPosition};
+use crate::shared::area::Area;
+use crate::shared::color::Color;
+use crate::shared::graphics::GLDrawHandle;
 use crate::shared::graphics_utils::Rounding;
 use crate::shared::theme::Theme;
 use crate::shared::vec::Vec2;
 
-const DEBUG: bool = false;
+const DEBUG: bool = true;
 
 pub type UpdateCtx<'a, 'b> = (&'a mut GLDrawHandle<'b>, &'b Theme);
 type Children = Vec<NodeWrapper>;
@@ -248,7 +248,7 @@ fn is_size_applicable(pair_name: &str, dir: &FrameDirection) -> bool {
 }
 
 impl NodeWrapper {
-    pub fn new<'a>(node: Node) -> NodeWrapper {
+    pub fn new(node: Node) -> NodeWrapper {
         NodeWrapper {
             node,
             cache_data: None
@@ -256,7 +256,7 @@ impl NodeWrapper {
     }
      
     pub fn render(&self, handle: &mut GLDrawHandle) {
-        self.node.render(handle)
+        self.node.render(handle);
     }
     pub fn update(&mut self, update_ctx: UpdateCtx, parent_area: &Area, context: &mut ContainerContext) -> Result<(), Error> {
         self.cache_data = Some((*parent_area, context.clone()));
@@ -369,10 +369,10 @@ impl Node {
         }
     }
     
-    pub fn update(&mut self, update_ctx: UpdateCtx, parent_area: &Area, context: &mut ContainerContext) -> Result<(), Error> {
+    pub fn update(&mut self, mut update_ctx: UpdateCtx, parent_area: &Area, context: &mut ContainerContext) -> Result<(), Error> {
         match self {
             Node::Document { children } => {
-                update_children(update_ctx, children, parent_area)?;
+                update_children(&mut update_ctx, children, parent_area)?;
             }
             
             Node::Block {
@@ -405,7 +405,7 @@ impl Node {
                     }
                 }
                 
-                *render_data = Some(update_frame(update_ctx, &area, header, children, &FrameData {
+                *render_data = Some(update_frame(&mut update_ctx, &area, header, children, &FrameData {
                     dir,
                     flipped
                 })?);
@@ -421,9 +421,9 @@ impl Node {
                 
                 let child_area = area.pad(header.get_padding());
                 
-                update_children((&mut *update_ctx.0, update_ctx.1), children, &child_area)?;
+                update_children(&mut (&mut *update_ctx.0, update_ctx.1), children, &child_area)?;
                 
-                *render_data = Some(update_block(update_ctx, &area, header)?);
+                *render_data = Some(update_block(&update_ctx, &area, header)?);
             }
             
             Node::Element {
@@ -433,7 +433,7 @@ impl Node {
                 render_data,
             } => {
                 
-                let data = update_element(update_ctx, &parent_area, header, value, context)?;
+                let data = update_element(&update_ctx, parent_area, header, value, context)?;
                 
                 *render_data = Some(data);
             }
@@ -455,7 +455,7 @@ impl Node {
     }
 }
 
-fn update_children(update_ctx: UpdateCtx, children: &mut Children, area: &Area) -> Result<(), Error> {
+fn update_children(update_ctx: &mut UpdateCtx, children: &mut Children, area: &Area) -> Result<(), Error> {
     let mut context = ContainerContext::new();
     for child in children {
         child.update((&mut *update_ctx.0, update_ctx.1), area, &mut context)?;
@@ -465,7 +465,7 @@ fn update_children(update_ctx: UpdateCtx, children: &mut Children, area: &Area) 
 }
 
 fn update_frame(
-    update_ctx: UpdateCtx,
+    update_ctx: &mut UpdateCtx,
     area: &Area,
     header: &Header,
     children: &mut Children,
@@ -552,26 +552,23 @@ fn update_frame(
         used += size;
     }
     
-    Ok(update_block(update_ctx, area, header)?)
+    update_block(update_ctx, area, header)
 }
 
 fn update_block(
-    update_ctx: UpdateCtx,
+    update_ctx: &UpdateCtx,
     area: &Area,
     header: &Header,
 ) -> Result<(Area, Option<Color>, Option<Rounding>), Error> {
     let color = header.expect("color", "color")?;
     
-    let color = match color {
-        Some(v) => Some(v.get_color(update_ctx.1).clone()),
-        None => None
-    };
+    let color = color.map(|v| v.get_color(update_ctx.1));
     
     Ok((*area, color, Some(get_rounding(header)?)))
 }
 
 fn update_element(
-    update_ctx: UpdateCtx,
+    update_ctx: &UpdateCtx,
     area: &Area,
     header: &Header,
     value: &Value,

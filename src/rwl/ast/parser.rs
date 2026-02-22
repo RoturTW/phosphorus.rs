@@ -1,7 +1,7 @@
 use crate::rwl::ast::range::Range;
 use crate::rwl::ast::position::Position;
 use crate::rwl::ast::token::{Token, TokenType};
-use crate::rwl::error::*;
+use crate::rwl::error::{Error, ErrPosition};
 use crate::rwl::value::{PropertyPath, ThemeProperty};
 use crate::shared::color::{parse_hex_color, Color};
 use crate::shared::utils::{is_alpha, is_numeric};
@@ -34,7 +34,7 @@ pub enum CommentType {
     Singleline
 }
 
-pub fn tokenise(text: String) -> Vec<Token> {
+pub fn tokenise(text: &str) -> Vec<Token> {
     macro_rules! add_buf {
         ($buf:expr,$tokens:expr,$pos:expr) => {
                 $tokens.push(Token {
@@ -54,7 +54,7 @@ pub fn tokenise(text: String) -> Vec<Token> {
         ln: 1,
         col: 1,
         i: 0,
-        script: text.clone()
+        script: text.to_string()
     };
     
     let mut comment_type: CommentType = CommentType::None;
@@ -73,7 +73,7 @@ pub fn tokenise(text: String) -> Vec<Token> {
                 if i > 0 && vec_chars[i - 1] == '*' && char == '/' {
                     comment_type = CommentType::None;
                 }
-                pos = pos + 1;
+                pos += 1;
                 i += 1;
                 continue;
             }
@@ -81,7 +81,7 @@ pub fn tokenise(text: String) -> Vec<Token> {
                 if char == '\n' {
                     comment_type = CommentType::None;
                 } else {
-                    pos = pos + 1;
+                    pos += 1;
                     i += 1;
                 }
                 continue;
@@ -90,13 +90,13 @@ pub fn tokenise(text: String) -> Vec<Token> {
         
         if char == '/' && i < text.len() - 1 && vec_chars[i + 1] == '*' {
             comment_type = CommentType::Multiline;
-            pos = pos + 1;
+            pos += 1;
             i += 1;
             continue;
         }
         if char == '/' && i < text.len() - 1 && vec_chars[i + 1] == '/' {
             comment_type = CommentType::Singleline;
-            pos = pos + 1;
+            pos += 1;
             i += 1;
             continue;
         }
@@ -222,14 +222,12 @@ impl Parser {
     fn get_last_end(&self) -> Position {
         self.tokens[self.pointer - 1].range.end.clone()
     }
+    #[allow(clippy::unused_self)]
     fn get_err_pos(&self) -> ErrPosition {
         ErrPosition
     }
     
     fn peek(&self) -> Token {
-        self.peek_amount(0)
-    }
-    fn peek_amount(&self, i: usize) -> Token {
         if let Some(tkn) = self.tokens.get(self.pointer) {
             tkn.clone()
         } else {
@@ -264,8 +262,8 @@ impl Parser {
         if tkn != other {
             return Err(Error::Expected {
                 wanted: vec![other.into()],
-                got: tkn.clone(),
-                range: tkn.range
+                got: Box::new(tkn.clone()),
+                range: Box::new(tkn.range)
             });
         }
         Ok(tkn)
@@ -276,8 +274,8 @@ impl Parser {
         if !other.contains(&tkn.token_type) {
             return Err(Error::Expected {
                 wanted: other,
-                got: tkn.clone(),
-                range: tkn.range
+                got: Box::new(tkn.clone()),
+                range: Box::new(tkn.range)
             });
         }
         Ok(tkn)
@@ -289,8 +287,8 @@ impl Parser {
             TokenType::Text(txt) => Ok(txt.clone()),
             
             _ => Err(Error::ExpectedText {
-                got: tkn.clone(),
-                range: tkn.range
+                got: Box::new(tkn.clone()),
+                range: Box::new(tkn.range)
             })
         }
     }
@@ -357,7 +355,7 @@ impl Parser {
         // void elements
         
         // block
-        if let TokenType::Text(text) = tkn.token_type && is_alpha(&*text) {
+        if let TokenType::Text(text) = tkn.token_type && is_alpha(&text) {
             return self.block_statement()
         }
         
@@ -448,8 +446,8 @@ impl Parser {
         
         Err(
             Error::UnexpectedToken {
-                token: self.peek(),
-                range: self.peek().range
+                token: Box::new(self.peek()),
+                range: Box::new(self.peek().range)
             }
         )
     }
@@ -464,20 +462,20 @@ impl Parser {
         ) {
             return self.str()
         }
-        if let TokenType::Text(text) = self.peek().token_type && is_numeric(&*text) {
+        if let TokenType::Text(text) = self.peek().token_type && is_numeric(&text) {
             return self.num();
         }
         if self.peek() == TokenType::Hash {
             return self.color();
         }
-        if let TokenType::Text(text) = self.peek().token_type && is_alpha(&*text) {
+        if let TokenType::Text(text) = self.peek().token_type && is_alpha(&text) {
             return self.property();
         }
         
         Err(
             Error::UnexpectedToken {
-                token: self.peek(),
-                range: self.peek().range
+                token: Box::new(self.peek()),
+                range: Box::new(self.peek().range)
             }
         )
     }
@@ -515,11 +513,11 @@ impl Parser {
     fn num(&mut self) -> AstValueOrErr {
         // TODO: support decimals?
         
-        if !is_numeric(&*self.peek().to_string()) {
+        if !is_numeric(&self.peek().to_string()) {
             return Err(
                 Error::UnexpectedToken {
-                    token: self.peek(),
-                    range: self.peek().range
+                    token: Box::new(self.peek()),
+                    range: Box::new(self.peek().range)
                 }
             );
         }
@@ -545,7 +543,7 @@ impl Parser {
         }
         Ok(AstValue::Color(
             // TODO: handle this better? :P
-            parse_hex_color(&*value).unwrap()
+            parse_hex_color(&value).unwrap()
         ))
     }
     fn property(&mut self) -> AstValueOrErr {
