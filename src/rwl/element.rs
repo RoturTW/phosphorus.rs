@@ -1,16 +1,18 @@
 use std::cmp::PartialEq;
 use std::collections::HashMap;
-use crate::rwl::ast::parser::{BlockType};
+use crate::{print_raw, print_warn, Log, LogKind, print_log};
+use crate::rwl::ast::node::{BlockType};
 use crate::rwl::value::Value;
-use crate::rwl::error::{Error, ErrPosition};
+use crate::rwl::error::{Error};
 use crate::shared::area::Area;
 use crate::shared::color::Color;
 use crate::shared::graphics::GLDrawHandle;
 use crate::shared::graphics_utils::Rounding;
+use crate::shared::logging::LogSource;
 use crate::shared::theme::Theme;
 use crate::shared::vec::Vec2;
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 pub type UpdateCtx<'a, 'b> = (&'a mut GLDrawHandle<'b>, &'b Theme);
 type Children = Vec<NodeWrapper>;
@@ -25,8 +27,7 @@ pub struct FrameData {
 }
 
 // data passed down to the children of a container
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ContainerContext {
     anchor_x: AnchorX,
     anchor_y: AnchorY,
@@ -110,7 +111,6 @@ impl Header {
             let val = self.get(name).unwrap();
             if val.get_type() != type_name {
                 return Err(Error::ValueTypeMismatch(
-                    ErrPosition,
                     String::from(type_name),
                     String::from(val.get_type())
                 ))
@@ -266,7 +266,7 @@ impl NodeWrapper {
         if let Some(mut data) = self.cache_data.clone() {
             self.update(update_ctx, &data.0, &mut data.1)?;
         } else {
-            eprintln!("NodeWrapper::update_from_cache() called on node without cache");
+            print_warn!(LogSource::Rwl, "NodeWrapper::update_from_cache() called on node without cache");
         }
         
         Ok(())
@@ -362,7 +362,8 @@ impl Node {
                 }
                 
                 // TODO: separate this into lines (and also change the struct) and handle alignment & color
-                handle.draw_text(&text.clone(), area.a, *size * 2.0, *color);
+                handle.draw_text(&text.clone(), area.a + Vec2(0.0, -5.0), *size * 2.0, *color);
+                //         hacky solution to match phosphorus.osl -^^^^^^^^^^^^^^^^^
             }
             
             _ => ()
@@ -503,19 +504,16 @@ fn update_frame(
                         
                         Value::Str(..) =>
                             Err(Error::ValueTypeMismatch (
-                                ErrPosition,
                                 String::from("'num' or 'percentage'"),
                                 String::from("str")
                             )),
                         Value::Color(..) =>
                             Err(Error::ValueTypeMismatch (
-                                ErrPosition,
                                 String::from("'num' or 'percentage'"),
                                 String::from("color")
                             )),
                         Value::Property(..) =>
                             Err(Error::ValueTypeMismatch (
-                                ErrPosition,
                                 String::from("'num' or 'percentage'"),
                                 String::from("property")
                             )),
@@ -579,7 +577,7 @@ fn update_element(
         Value::Num(num) => &*num.to_string(),
         
         _ => {
-            return Err(Error::InvalidElemType(ErrPosition, String::from(value.get_type())))
+            return Err(Error::InvalidElemType(String::from(value.get_type())))
         }
     };
     
@@ -724,7 +722,7 @@ fn get_anchor(header: &Header) -> Result<(Option<AnchorX>, Option<AnchorY>), Err
         if pair_name == "anchor"
             && let Value::Str(name) = pair_value {
             if !VALID_ANCHORS.contains(&name.as_str()) {
-                return Err(Error::InvalidAnchor(ErrPosition, name.clone()))
+                return Err(Error::InvalidAnchor(name.clone()))
             }
             
             if name.ends_with('l') || name.ends_with("left") {
@@ -761,7 +759,7 @@ fn get_alignment(header: &Header, default: Alignment) -> Result<Alignment, Error
         if pair_name == "alignment"
             && let Value::Str(name) = pair_value {
             if !VALID_ALIGNMENTS.contains(&name.as_str()) {
-                return Err(Error::InvalidAlignment(ErrPosition, name.clone()))
+                return Err(Error::InvalidAlignment(name.clone()))
             }
             
             if name.ends_with('l') || name.ends_with("left") {

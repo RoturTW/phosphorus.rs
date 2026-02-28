@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::rwl::ast::position::Position;
+use crate::shared::position::Position;
 
 #[derive(Clone, Debug)]
 pub struct Range {

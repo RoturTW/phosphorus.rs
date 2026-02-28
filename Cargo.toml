@@ -14,5 +14,6 @@ cast_possible_truncation = "allow"
 cast_sign_loss = "allow"
 
 [dependencies]
+colored = "3.1.1"
 macroquad = "0.4.14"
 #raylib = "5.5.1"

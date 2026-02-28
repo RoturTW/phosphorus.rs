@@ -1,9 +1,6 @@
 use std::fmt::{Display, Formatter};
-use crate::rwl::ast::range::Range;
-use crate::rwl::ast::token::{Token, TokenType};
-
-#[derive(Debug)]
-pub struct ErrPosition;
+use crate::shared::range::Range;
+use crate::shared::token::{Token, TokenType};
 
 #[derive(Debug)]
 pub enum Error {
@@ -35,10 +32,10 @@ pub enum Error {
     },
     
     // update
-    ValueTypeMismatch(ErrPosition, String, String),
-    InvalidAnchor(ErrPosition, String),
-    InvalidAlignment(ErrPosition, String),
-    InvalidElemType(ErrPosition, String)
+    ValueTypeMismatch(String, String),
+    InvalidAnchor(String),
+    InvalidAlignment(String),
+    InvalidElemType(String)
 }
 
 impl Display for Error {
@@ -73,13 +70,13 @@ impl Display for Error {
                 write!(f, "unknown property '{property}' on {source}"),
             
             // update
-            Error::ValueTypeMismatch(_, wanted, got) =>
+            Error::ValueTypeMismatch(wanted, got) =>
                 write!(f, "expected {wanted}, got {got}"),
-            Error::InvalidAnchor(_, got) =>
+            Error::InvalidAnchor(got) =>
                 write!(f, "invalid anchor '{got}'"), // add list of anchors?
-            Error::InvalidAlignment(_, got) =>
+            Error::InvalidAlignment(got) =>
                 write!(f, "invalid alignment '{got}'"),  // add list of alignments?
-            Error::InvalidElemType(_, type_name) =>
+            Error::InvalidElemType(type_name) =>
                 write!(f, "cannot have {type_name} as element")
         }
     }

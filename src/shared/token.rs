@@ -1,6 +1,6 @@
 use std::cmp::PartialEq;
 use std::fmt::{Debug, Display, Formatter};
-use crate::rwl::ast::range::Range;
+use crate::shared::range::Range;
 
 #[derive(Clone)]
 pub struct Token {

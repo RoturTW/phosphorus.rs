@@ -1,0 +1,4 @@
+event(onload) {
+    bleh := "fr";
+    log(bleh);
+}

@@ -19,8 +19,8 @@ impl GLCtx {
     }
     
     #[allow(clippy::unused_self)]
-    pub fn finish_frame(&self) {
-    
+    pub async fn finish_frame(&self) {
+        next_frame().await;
     }
     
     #[allow(clippy::unused_self)]
@@ -106,8 +106,8 @@ impl GLDrawHandle<'_> {
     }
 }
 
-pub fn window_conf() -> macroquad::window::Conf {
-    macroquad::window::Conf {
+pub fn window_conf() -> Conf {
+    Conf {
         window_title: "phosphorus maybe :3".to_string(),
         window_width: 640,
         window_height: 480,
