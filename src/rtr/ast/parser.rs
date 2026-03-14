@@ -309,10 +309,7 @@ impl Parser {
         let start = self.get_next_start();
         
         let token = self.expect_multiple(vec!["while".into(), "until".into()])?;
-        let token_text = match token.token_type {
-            TokenType::Text(str) => str,
-            _ => panic!()
-        };
+        let TokenType::Text(token_text) = token.token_type else { panic!() };
         
         let kind = match token_text.as_str() {
             "while" => AstConditionalType::While,

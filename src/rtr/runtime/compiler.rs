@@ -79,7 +79,7 @@ pub fn compile_statement(ctx: &mut CompileContext, statement: AstStatement) -> R
             });
             instructions.append(compile_statement(ctx, *body)?.as_mut());
             instructions.push(VmInstruction::Jump(start_lbl));
-            instructions.push(VmInstruction::Label(end_lbl))
+            instructions.push(VmInstruction::Label(end_lbl));
         }
         AstStatement::Repeat { amount, body, .. } => {
             let start_lbl = get_label_name(ctx);

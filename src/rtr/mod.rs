@@ -247,6 +247,7 @@ impl RTRInstance {
         self.stack.push(val);
     }
     
+    #[allow(clippy::too_many_lines)]
     pub fn run_instructions(&mut self, instructions: &[VmInstruction]) -> Result<Option<MemPointer>, Error> {
         self.new_scope();
         
@@ -371,7 +372,7 @@ impl RTRInstance {
                     let (obj, obj_ptr) = self.pop_stack();
                     let obj = obj.clone();
                     
-                    let ptr = obj.get_item(&mut self.memory, key);
+                    let ptr = obj.get_item(&mut self.memory, &key);
                     self.push_stack_ptr(ptr);
                     
                     if let VmInstruction::Prop = inst {
@@ -499,15 +500,12 @@ impl RTRInstance {
                     let ptr = self.scope.get_var(name).unwrap_or(self.memory.alloc(Value::Null));
                     let (val, val_ptr) = self.pop_stack();
                     let val = val.clone();
-                    match op {
-                        AssignmentOp::Default => {
-                            let new_val_ptr = self.memory.alloc(val);
-                            self.scope.set_var(&mut self.memory, name.clone(), new_val_ptr);
-                        }
-                        _ => {
-                            let original = self.memory.get(ptr).clone();
-                            self.memory.get_cell_mut(ptr).val = self.run_binary_op(&original, &val, &op.clone().into());
-                        }
+                    if let AssignmentOp::Default = op {
+                        let new_val_ptr = self.memory.alloc(val);
+                        self.scope.set_var(&mut self.memory, name.clone(), new_val_ptr);
+                    } else {
+                        let original = self.memory.get(ptr).clone();
+                        self.memory.get_cell_mut(ptr).val = self.run_binary_op(&original, &val, &op.clone().into());
                     }
                     self.push_stack_ptr(val_ptr);
                 }
@@ -528,35 +526,32 @@ impl RTRInstance {
                     
                     let obj = self.memory.get_mut(obj_ptr);
                     
-                    match op {
-                        AssignmentOp::Default => {
-                            let old_ptr = {
-                                let mut obj = self.memory.get_mut(obj_ptr);
-                                obj.set_item(index_key, val_ptr)
-                            };
-                            
-                            if let Some(ptr) = old_ptr {
-                                self.memory.free(ptr);
-                            }
+                    if let AssignmentOp::Default = op {
+                        let old_ptr = {
+                            let mut obj = self.memory.get_mut(obj_ptr);
+                            obj.set_item(index_key, val_ptr)
+                        };
+                        
+                        if let Some(ptr) = old_ptr {
+                            self.memory.free(ptr);
                         }
-                        _ => {
-                            let ptr = {
-                                let obj = self.memory.get(obj_ptr).clone();
-                                obj.get_item(&mut self.memory, key.clone())
-                            };
-                            
-                            let original = self.memory.get(ptr).clone();
-                            let val = self.run_binary_op(&original, &val, &op.clone().into());
-                            let val_ptr = self.memory.alloc(val);
-                            
-                            let old_ptr = {
-                                let obj = self.memory.get_mut(obj_ptr);
-                                obj.set_item(index_key, val_ptr)
-                            };
-                            
-                            if let Some(ptr) = old_ptr {
-                                self.memory.free(ptr);
-                            }
+                    } else {
+                        let ptr = {
+                            let obj = self.memory.get(obj_ptr).clone();
+                            obj.get_item(&mut self.memory, &key)
+                        };
+                        
+                        let original = self.memory.get(ptr).clone();
+                        let val = self.run_binary_op(&original, &val, &op.clone().into());
+                        let val_ptr = self.memory.alloc(val);
+                        
+                        let old_ptr = {
+                            let obj = self.memory.get_mut(obj_ptr);
+                            obj.set_item(index_key, val_ptr)
+                        };
+                        
+                        if let Some(ptr) = old_ptr {
+                            self.memory.free(ptr);
                         }
                     }
                     

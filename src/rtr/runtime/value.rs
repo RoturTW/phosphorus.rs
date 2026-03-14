@@ -153,7 +153,7 @@ impl Value {
     pub fn stringify_format(&self, memory: &Memory) -> String {
         match self {
             Value::Str { data } =>
-                format!("{:?}", data),
+                format!("{data:?}"),
             
             _ => self.stringify(memory)
         }
@@ -222,7 +222,7 @@ impl Value {
                     .keys()
                     .map(|key| {
                         memory.alloc(Value::Str {
-                            data: key.to_string()
+                            data: key.clone()
                         })
                     })
                     .collect()
@@ -245,7 +245,7 @@ impl Value {
             _ => 0
         }
     }
-    pub fn get_item(&self, memory: &mut Memory, key: Value) -> MemPointer {
+    pub fn get_item(&self, memory: &mut Memory, key: &Value) -> MemPointer {
         // TODO: allow for negative indexes
         match self {
             Value::Str { data } =>
@@ -305,7 +305,7 @@ impl Value {
             }
             Value::Obj { data } => {
                 data.values()
-                    .map(|ptr| ptr.clone())
+                    .copied()
                     .collect()
             }
             
@@ -343,10 +343,9 @@ impl Value {
                 true,
             (Value::Str { data: a_data }, Value::Str { data: b_data }) =>
                 a_data == b_data,
-            (Value::Num { data: a_data }, Value::Num { data: b_data }) =>
-                a_data == b_data,
-            (Value::Percentage { data: a_data }, Value::Percentage { data: b_data }) =>
-                a_data == b_data,
+            (Value::Num { data: a_data }, Value::Num { data: b_data })
+            | (Value::Percentage { data: a_data }, Value::Percentage { data: b_data }) =>
+                (a_data - b_data).abs() < 0.000_000_1,
             (Value::Bool { data: a_data }, Value::Bool { data: b_data }) =>
                 a_data == b_data,
             (Value::Color { data: a_data }, Value::Color { data: b_data }) =>
@@ -478,6 +477,7 @@ pub enum BuiltinFunction {
 
 impl BuiltinFunction {
     #[allow(clippy::too_many_lines)]
+    #[allow(clippy::unnecessary_wraps)]
     pub fn call(&self, memory: &mut Memory, args: &[MemPointer]) -> Result<MemPointer, Error> {
         match self {
             BuiltinFunction::Log => {
@@ -587,7 +587,7 @@ impl BuiltinFunction {
                             .iter()
                             .map(|ptr| memory.get(*ptr).stringify(memory))
                             .reduce(|a, b| {
-                                format!("{}{}", a, b)
+                                format!("{a}{b}")
                             }).unwrap_or(String::new())
                     })
                 );
@@ -626,7 +626,7 @@ impl BuiltinFunction {
                 return Ok(
                     memory.alloc(
                         Value::Num {
-                            data: ord(str)
+                            data: ord(&str)
                         }
                     )
                 )
@@ -642,7 +642,7 @@ impl BuiltinFunction {
                 let value = memory.get(args[0]).clone();
                 let idx = memory.get(args[1]).clone();
                 return Ok(
-                    value.get_item(memory, idx)
+                    value.get_item(memory, &idx)
                 );
             }
             BuiltinFunction::Range => {
