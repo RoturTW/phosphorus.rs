@@ -1,4 +1,4 @@
-use crate::rtr::ast::node::{BinaryOp, Parameter, UnaryOp};
+use crate::rtr::ast::node::{AssignmentOp, BinaryOp, Parameter, UnaryOp};
 use crate::shared::color::Color;
 
 #[derive(Debug, Clone)]
@@ -15,7 +15,10 @@ pub enum VmInstruction {
     Unary(UnaryOp),
     Binary(BinaryOp),
     Prop,
+    PropNoFree, // (used in for)
     Len,
+    LenNoFree,  // (used in for)
+    Arrify,
     
     // values
     Null,
@@ -42,10 +45,15 @@ pub enum VmInstruction {
     PopScope,
     
     // assignments
-    AsiVar(String, BinaryOp),
-    AsiProp(BinaryOp),
+    AsiVar(String, AssignmentOp),
+    AsiProp(AssignmentOp),
     
     // stack
     Pop,
-    Dupe(usize)
+    Dupe(usize),
+    DupePtr(usize),
+    
+    // memory
+    AddRef,
+    RmRef
 }

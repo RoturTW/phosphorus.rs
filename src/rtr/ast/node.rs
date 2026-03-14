@@ -15,7 +15,41 @@ pub enum AstTopLevelStatement {
 
 #[derive(Debug, Clone)]
 pub enum AstStatement {
+    Block {
+        body: Vec<AstStatement>
+    },
+    Branch {
+        cond: AstExpression,
+        body: Box<AstStatement>,
+        elifs: Vec<(AstExpression, AstStatement)>,
+        else_body: Option<Box<AstStatement>>,
+        range: Range
+    },
+    ConditionalLoop {
+        kind: AstConditionalType,
+        cond: AstExpression,
+        body: Box<AstStatement>,
+        range: Range
+    },
+    Repeat {
+        amount: AstExpression,
+        body: Box<AstStatement>,
+        range: Range
+    },
+    For {
+        var: String,
+        iterator: AstExpression,
+        body: Box<AstStatement>,
+        range: Range
+    },
+    
     Expression(AstExpression)
+}
+
+#[derive(Debug, Clone)]
+pub enum AstConditionalType {
+    While,
+    Until
 }
 
 #[derive(Debug, Clone)]
@@ -49,6 +83,12 @@ pub enum AstExpression {
         value: Box<AstExpression>,
         range: Range
     },
+    Assignment {
+        op: AssignmentOp,
+        target: Box<AstExpression>,
+        value: Box<AstExpression>,
+        range: Range
+    },
     Unary {
         value: Box<AstExpression>,
         op: UnaryOp,
@@ -66,8 +106,21 @@ pub enum AstExpression {
         name: String,
         range: Range
     },
+    Property {
+        obj: Box<AstExpression>,
+        key: PropertyKey,
+        range: Range
+    },
     
     // values
+    Array {
+        items: Vec<AstExpression>,
+        range: Range
+    },
+    Object {
+        pairs: Vec<(String, AstExpression)>,
+        range: Range
+    },
     String {
         content: String,
         range: Range
@@ -78,6 +131,11 @@ pub enum AstExpression {
     },
     Percentage {
         content: f32,
+        range: Range
+    },
+    Func {
+        params: Vec<String>,
+        body: Box<AstStatement>,
         range: Range
     }
 }
@@ -110,6 +168,40 @@ pub enum BinaryOp {
     NullishCoalescence
 }
 #[derive(Debug, Clone)]
+pub enum AssignmentOp {
+    Default,
+    
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Pow,
+    
+    NullishCoalescence
+}
+impl From<AssignmentOp> for BinaryOp {
+    fn from(value: AssignmentOp) -> Self {
+        match value {
+            AssignmentOp::Default => panic!("cannot convert default to binary op"),
+            AssignmentOp::Add => BinaryOp::Add,
+            AssignmentOp::Sub => BinaryOp::Sub,
+            AssignmentOp::Mul => BinaryOp::Mul,
+            AssignmentOp::Div => BinaryOp::Div,
+            AssignmentOp::Mod => BinaryOp::Mod,
+            AssignmentOp::Pow => BinaryOp::Pow,
+            
+            AssignmentOp::NullishCoalescence => BinaryOp::NullishCoalescence
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Parameter {
     pub name: String
+}
+#[derive(Debug, Clone)]
+pub enum PropertyKey {
+    Str(String),
+    Expr(Box<AstExpression>)
 }

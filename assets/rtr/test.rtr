@@ -1,4 +1,7 @@
 event(onload) {
-    bleh := "fr";
-    log(bleh);
+  bleh = null;
+  bleh ??= "hi";
+  log(bleh);
+
+  log(null ?? "fr");
 }

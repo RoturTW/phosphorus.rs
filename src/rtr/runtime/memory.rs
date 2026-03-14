@@ -65,10 +65,12 @@ impl Memory {
     }
     
     pub fn add_ref(&mut self, ptr: MemPointer) {
+        assert!(self.has_cell(ptr), "ptr to dead cell");
         debug_log(0, &format!("add ref {}", ptr.id.0));
         self.cells[ptr.id.0].as_mut().unwrap().refs += 1;
     }
     pub fn rm_ref(&mut self, ptr: MemPointer) {
+        assert!(self.has_cell(ptr), "ptr to dead cell");
         debug_log(0, &format!("rm ref {}", ptr.id.0));
         let cell = self.cells[ptr.id.0].as_mut().unwrap();
         if cell.refs > 0 {
@@ -80,6 +82,9 @@ impl Memory {
     pub fn has_cell(&self, ptr: MemPointer) -> bool {
         self.cells[ptr.id.0].is_some()
     }
+    pub fn get_cell_option(&self, ptr: MemPointer) -> Option<&MemCell> {
+        self.cells[ptr.id.0].as_ref()
+    }
     pub fn get_cell(&self, ptr: MemPointer) -> &MemCell {
         assert!(self.has_cell(ptr), "ptr to dead cell");
         self.cells[ptr.id.0].as_ref().unwrap()
@@ -89,6 +94,17 @@ impl Memory {
         self.cells[ptr.id.0].as_mut().unwrap()
     }
     
+    pub fn get_option(&self, ptr: MemPointer) -> Option<&Value> {
+        debug_log(0, &format!("get {}", ptr.id.0));
+        
+        let cell = self.get_cell_option(ptr);
+        
+        if let Some(cell) = cell {
+            Some(&cell.val)
+        } else {
+            None
+        }
+    }
     pub fn get(&self, ptr: MemPointer) -> &Value {
         assert!(self.has_cell(ptr), "ptr to dead cell");
         debug_log(0, &format!("get {}", ptr.id.0));
@@ -98,6 +114,8 @@ impl Memory {
         &cell.val
     }
     pub fn get_mut(&mut self, ptr: MemPointer) -> &mut Value {
+        assert!(self.has_cell(ptr), "ptr to dead cell");
+        debug_log(0, &format!("get mut {}", ptr.id.0));
         let cell = self.get_cell_mut(ptr);
         
         &mut cell.val

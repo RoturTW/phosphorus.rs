@@ -15,6 +15,11 @@ impl Color {
     pub fn hex(input: &str) -> Result<Color, &'static str> {
         parse_hex_color(input)
     }
+    pub fn above_zero(self) -> bool {
+        self.r > 0
+        || self.g > 0
+        || self.b > 0
+    }
     pub fn to_mq(self) -> MQColor {
         self.into()
     }

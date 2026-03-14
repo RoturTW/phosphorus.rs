@@ -24,6 +24,9 @@ pub enum Error {
     // runtime
     CannotCall {
         func: String
+    },
+    CannotAssign {
+        to: String
     }
 }
 
@@ -49,7 +52,9 @@ impl Display for Error {
             
             // runtime
             Error::CannotCall { func } =>
-                write!(f, "cannot call '{func}' as func")
+                write!(f, "cannot call '{func}' as func"),
+            Error::CannotAssign { to } =>
+                write!(f, "cannot assign to {to}"),
         }
     }
 }
