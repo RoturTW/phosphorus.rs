@@ -1,0 +1,13 @@
+name: Math Functions
+
+code (program):
+    event(onload) {
+        log(min(1, 2, 3));
+        log(max(1, 2, 3));
+        log(abs(-61));
+        log(round(3.7), floor(3.7), ceil(3.2));
+        log(sqrt(256));
+    }
+
+result:
+    1 3 61 4 3 4 16

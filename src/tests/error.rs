@@ -20,18 +20,17 @@ pub enum Error {
         got: Box<Token>,
         range: Box<Range>
     },
-    InvalidColor {
-        
-        range: Range
+    ExpectedNum {
+        got: Box<Token>,
+        range: Box<Range>
     },
     
-    // runtime
-    CannotCall {
-        func: String
+    TestNeedsName,
+    TestNeedsCode,
+    InvalidCodeType {
+        range: Box<Range>
     },
-    CannotAssign {
-        to: String
-    }
+    TextMustHaveIndent
 }
 
 impl Display for Error {
@@ -53,14 +52,17 @@ impl Display for Error {
                 ),
             Error::ExpectedText { got, ..} =>
                 write!(f, "expected text, got {got}"),
-            Error::InvalidColor { .. } =>
-                write!(f, "invalid hex color, must follow #rgb or #rrggbb"),
+            Error::ExpectedNum { got, ..} =>
+                write!(f, "expected num, got {got}"),
             
-            // runtime
-            Error::CannotCall { func } =>
-                write!(f, "cannot call '{func}' as func"),
-            Error::CannotAssign { to } =>
-                write!(f, "cannot assign to {to}"),
+            Error::TestNeedsName =>
+                write!(f, "test needs name"),
+            Error::TestNeedsCode =>
+                write!(f, "test needs code"),
+            Error::InvalidCodeType { .. } =>
+                write!(f, "invalid code type, expected expr or program"),
+            Error::TextMustHaveIndent =>
+                write!(f, "code / result must have indent"),
         }
     }
 }

@@ -46,9 +46,6 @@ pub fn tokenise(text: &str) -> Vec<Token> {
         };
     }
     
-    let mut tokens: Vec<Token> = Vec::new();
-    let mut buf: String = String::new();
-    
     let mut pos: Position = Position {
         ln: 1,
         col: 1,
@@ -56,7 +53,11 @@ pub fn tokenise(text: &str) -> Vec<Token> {
         script: text.to_string()
     };
     
-    let mut comment_type: CommentType = CommentType::None;
+    let mut tokens: Vec<Token> = Vec::new();
+    let mut buf: String = String::new();
+    let mut buf_start = pos.clone();
+    
+    let mut comment_type: crate::rtr::ast::CommentType = crate::rtr::ast::CommentType::None;
     let mut i: usize = 0;
     let vec_chars = text.chars().collect::<Vec<char>>();
     let chars = text.chars();
@@ -67,18 +68,18 @@ pub fn tokenise(text: &str) -> Vec<Token> {
         }
         
         match comment_type {
-            CommentType::None => (),
-            CommentType::Multiline => {
+            crate::rtr::ast::CommentType::None => (),
+            crate::rtr::ast::CommentType::Multiline => {
                 if i > 0 && vec_chars[i - 1] == '*' && char == '/' {
-                    comment_type = CommentType::None;
+                    comment_type = crate::rtr::ast::CommentType::None;
                 }
                 pos += 1;
                 i += 1;
                 continue;
             }
-            CommentType::Singleline => {
+            crate::rtr::ast::CommentType::Singleline => {
                 if char == '\n' {
-                    comment_type = CommentType::None;
+                    comment_type = crate::rtr::ast::CommentType::None;
                 } else {
                     pos += 1;
                     i += 1;
@@ -88,13 +89,13 @@ pub fn tokenise(text: &str) -> Vec<Token> {
         }
         
         if char == '/' && i < text.len() - 1 && vec_chars[i + 1] == '*' {
-            comment_type = CommentType::Multiline;
+            comment_type = crate::rtr::ast::CommentType::Multiline;
             pos += 1;
             i += 1;
             continue;
         }
         if char == '/' && i < text.len() - 1 && vec_chars[i + 1] == '/' {
-            comment_type = CommentType::Singleline;
+            comment_type = crate::rtr::ast::CommentType::Singleline;
             pos += 1;
             i += 1;
             continue;
@@ -102,7 +103,13 @@ pub fn tokenise(text: &str) -> Vec<Token> {
         
         if SPLIT_CHARS.contains(&char) {
             if !buf.is_empty() {
-                add_buf!(buf, tokens, pos);
+                tokens.push(Token {
+                    token_type: buf.clone().into(),
+                    range: Range {
+                        start: buf_start.clone(),
+                        end: pos.clone(),
+                    }
+                });
                 buf = String::new();
             }
             tokens.push(Token {
@@ -114,6 +121,9 @@ pub fn tokenise(text: &str) -> Vec<Token> {
             });
             pos += 1;
         } else {
+            if buf.is_empty() {
+                buf_start = pos.clone();
+            }
             buf.push(char);
             pos += 1;
         }
@@ -122,7 +132,13 @@ pub fn tokenise(text: &str) -> Vec<Token> {
     }
     
     if !buf.is_empty() {
-        add_buf!(buf, tokens, pos);
+        tokens.push(Token {
+            token_type: buf.clone().into(),
+            range: Range {
+                start: buf_start.clone(),
+                end: pos.clone(),
+            }
+        });
     }
     
     tokens

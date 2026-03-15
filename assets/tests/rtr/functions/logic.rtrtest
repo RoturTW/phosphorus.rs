@@ -1,0 +1,15 @@
+name: Logical Functions
+
+code (program):
+    event(onload) {
+        log(all(true, true, true),
+            all(true, false, true),
+            all(true, 1, "hello"));
+        log(any(false, false, true),
+            any(false, false, false),
+            any(false, 0, "hello"));
+        log(not(true), not(false), not(0), not(1));
+    }
+
+result:
+    true false true true false true false true true false

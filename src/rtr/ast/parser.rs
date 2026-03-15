@@ -684,6 +684,7 @@ impl Parser {
             
             let mut args = Vec::new();
             
+            self.consume_whitespace();
             while !(self.peek() == TokenType::CloseParen || self.at_end()) {
                 let expression = self.expression();
                 self.consume_whitespace();
@@ -819,11 +820,11 @@ impl Parser {
             return self.str();
         }
         if let TokenType::Text(name) = self.peek().token_type {
-            if is_alpha(&name) {
+            if is_numeric(&name) {
+                return self.num();
+            } else if is_alpha(&name) {
                 let range = self.consume().range;
                 return Ok(AstExpression::Variable { name, range });
-            } else if is_numeric(&name) {
-                return self.num();
             }
         }
         

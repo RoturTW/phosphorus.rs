@@ -1,0 +1,15 @@
+name: String Functions
+
+code (program):
+    event(onload) {
+        log(join("Hello ", "World"));
+        log(join("a", "b", "c"));
+        log(split("Hello World", " "));
+        log(split("a-b-c", "-"));
+        log(chr(65));
+        log(ord("A"));
+        log(length("Hello"));
+    }
+
+result:
+    Hello World abc ["Hello", "World"] ["a", "b", "c"] A 65 5

@@ -1,3 +1,11 @@
 event(onload) {
-    log(?#000);
+  a := 10;
+  b := 3;
+  
+  log(a + b);
+  log(a - b);
+  log(a * b);
+  log(a / b);
+  log(a % b);
+  log(a ^ b);
 }

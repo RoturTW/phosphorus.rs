@@ -4,6 +4,7 @@ use crate::rtr::ast::node::{AssignmentOp, AstProgram, AstStatement, AstTopLevelS
 use crate::rtr::ast::parser::Parser;
 use crate::rtr::ast::tokenise;
 use crate::rtr::error::Error;
+use crate::rtr::log::RTRLog;
 use crate::rtr::runtime::compiler;
 use crate::rtr::runtime::compiler::CompileContext;
 use crate::rtr::runtime::instruction::VmInstruction;
@@ -15,6 +16,7 @@ use crate::shared::logging::LogSource;
 pub mod ast;
 pub mod runtime;
 mod error;
+pub mod log;
 
 #[derive(Debug)]
 struct Event {
@@ -29,7 +31,9 @@ pub struct RTRInstance {
     // runtime
     pub stack: Vec<MemPointer>,
     pub scope: Scope,
-    pub memory: Memory
+    pub memory: Memory,
+    
+    pub logs: Vec<RTRLog>
 }
 
 impl RTRInstance {
@@ -39,7 +43,9 @@ impl RTRInstance {
             
             stack: Vec::new(),
             scope: Scope::new(),
-            memory: Memory::default()
+            memory: Memory::default(),
+            
+            logs: Vec::new()
         };
         
         inst.init();
@@ -164,7 +170,7 @@ impl RTRInstance {
         ));
     }
     
-    pub fn parse(&mut self, src: &str) {
+    pub fn parse(&mut self, src: &str) -> Result<(), Error> {
         let tokens = tokenise(src);
         let mut parser = Parser {
             pointer: 0,
@@ -175,11 +181,14 @@ impl RTRInstance {
         match out {
             Err(err) => {
                 print_warn!(LogSource::Rtr, "{err}");
+                return Err(err);
             }
             Ok(ast) => {
                 self.ast = Some(ast);
             }
         }
+        
+        Ok(())
     }
     
     // TODO: find a better way to do this? :sob:
@@ -212,22 +221,29 @@ impl RTRInstance {
         events
     }
     
-    pub fn run_event_target(&mut self, target: &EventTarget) -> Result<(), Error> {
+    pub fn run_event_target(&mut self, target: &EventTarget) -> Result<Option<Value>, Error> {
         // TODO: cache compiled segments :P
         let events = self.get_eligible(target);
         
+        let mut out = None;
+        
         for event in events {
-            self.run_event(event)?;
+            let ev_out = self.run_event(event)?;
+            if let Some(data) = ev_out {
+                out = Some(data);
+            }
         }
         
-        Ok(())
+        Ok(out)
     }
-    fn run_event(&mut self, event: Event) -> Result<(), Error> {
+    fn run_event(&mut self, event: Event) -> Result<Option<Value>, Error> {
         let instructions = self.compile_event(event.body)?;
         //println!("{instructions:?}");
-        self.run_instructions(&instructions)?;
+        let val = self.run_instructions(&instructions)?;
         
-        Ok(())
+        let val = val.map(|ptr| self.memory.get(ptr).clone());
+        
+        Ok(val)
     }
     
     fn pop_stack(&mut self) -> (&Value, MemPointer) {
@@ -356,7 +372,7 @@ impl RTRInstance {
                                 return Ok(ptr);
                             }
                             _ => {
-                                func.call(&mut self.memory, &args)?
+                                func.call(&mut self.logs, &mut self.memory, &args)?
                             }
                         }
                     };

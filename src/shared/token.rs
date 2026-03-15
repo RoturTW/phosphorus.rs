@@ -77,7 +77,7 @@ pub enum TokenType {
     
     LeftArrow, RightArrow,
     
-    Comma, SemiColon, Colon, Period, Hash, Tilde,
+    Comma, SemiColon, Colon, Period, Hash, Tilde, Dollar,
     Plus, Minus, Star, Slash, Mod, Pow,
     ExclamationMark, QuestionMark,
     BackSlash, Pipe, Equal,
@@ -91,14 +91,14 @@ pub enum TokenType {
     Text(String)
 }
 
-pub const TOKENS: [char; 30] = [
+pub const TOKENS: [char; 31] = [
     '(', ')',
     '[', ']',
     '{', '}',
     
     '<', '>',
     
-    ',',';',':','.','#','~',
+    ',',';',':','.','#','~','$',
     '+','-','*','/','%','^',
     '!', '?',
     '\\', '|', '=',
@@ -117,7 +117,7 @@ impl From<char> for TokenType {
             
             '<' => TokenType::LeftArrow, '>' => TokenType::RightArrow,
             
-            ',' => TokenType::Comma, ';' => TokenType::SemiColon, ':' => TokenType::Colon, '.' => TokenType::Period, '#' => TokenType::Hash, '~' => TokenType::Tilde,
+            ',' => TokenType::Comma, ';' => TokenType::SemiColon, ':' => TokenType::Colon, '.' => TokenType::Period, '#' => TokenType::Hash, '~' => TokenType::Tilde, '$' => TokenType::Dollar,
             '+' => TokenType::Plus, '-' => TokenType::Minus, '*' => TokenType::Star, '/' => TokenType::Slash, '%' => TokenType::Mod, '^' => TokenType::Pow,
             '!' => TokenType::ExclamationMark, '?' => TokenType::QuestionMark,
             '\\' => TokenType::BackSlash, '|' => TokenType::Pipe, '=' => TokenType::Equal,
@@ -165,7 +165,7 @@ impl Display for TokenType {
             
             TokenType::LeftArrow => "<", TokenType::RightArrow => ">",
             
-            TokenType::Comma => ",", TokenType::SemiColon => ";", TokenType::Colon => ":", TokenType::Period => ".", TokenType::Hash => "#", TokenType::Tilde => "~",
+            TokenType::Comma => ",", TokenType::SemiColon => ";", TokenType::Colon => ":", TokenType::Period => ".", TokenType::Hash => "#", TokenType::Tilde => "~", TokenType::Dollar => "$",
             TokenType::Plus => "+", TokenType::Minus => "-", TokenType::Star => "*", TokenType::Slash => "/", TokenType::Mod => "%", TokenType::Pow => "^",
             TokenType::ExclamationMark => "!", TokenType::QuestionMark => "?",
             TokenType::BackSlash => "\\", TokenType::Pipe => "|", TokenType::Equal => "=",

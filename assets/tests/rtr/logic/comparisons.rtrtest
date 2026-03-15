@@ -1,0 +1,16 @@
+name: Comparison Operations
+
+code (program):
+    event(onload) {
+        a := 10;
+        b := 3;
+        log(a == b);
+        log(a != b);
+        log(a > b);
+        log(a < b);
+        log(a >= b);
+        log(a <= b);
+    }
+
+result:
+    false true true false true false

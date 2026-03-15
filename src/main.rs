@@ -12,9 +12,11 @@ use crate::shared::vec::Vec2;
 mod rtr;
 mod rwl;
 mod shared;
+mod tests;
 
 pub(crate) use shared::logging::{print_log, LogKind, LogSource, Log};
 use crate::rtr::ast::node::EventTarget;
+use crate::tests::run_tests;
 
 fn window_conf() -> macroquad::window::Conf {
     macroquad::window::Conf {
@@ -63,6 +65,10 @@ async fn main() {
     let test = env::var("TEST").unwrap_or_else(|_| "NONE".to_string());
     
     match test.as_str() {
+        "ALL" => {
+            run_tests();
+        }
+        
         "RTR" => {
             let mut inst = RTRInstance::new();
             
@@ -75,7 +81,7 @@ async fn main() {
             });
             
             if let Err(err) = out {
-                print_error!(LogSource::Rtr, "Err: {}", err);
+                print_error!(LogSource::Rtr, "Err: {err}");
             }
         }
         

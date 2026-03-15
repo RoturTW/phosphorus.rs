@@ -1,0 +1,45 @@
+name: Truthy
+desc: checks truthyness of different types
+
+code (expr):
+    ?$1
+
+result(null):
+    false
+result(""):
+    false
+result(0):
+    false
+result(-1):
+    false
+result(0%):
+    false
+result(-1%):
+    false
+result(false):
+    false
+result([]):
+    false
+result({}):
+    false
+result(#000):
+    false
+result(#000000):
+    false
+
+result("hi"):
+    true
+result(1):
+    true
+result(1%):
+    true
+result(true):
+    true
+result(["hi"]):
+    true
+result({key:"value"}):
+    true
+result(#111):
+    true
+result(#111111):
+    true

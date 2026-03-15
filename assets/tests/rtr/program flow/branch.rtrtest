@@ -1,0 +1,21 @@
+name: If statement
+desc: if statements
+
+code (program):
+    event(onload) {
+        age := $1;
+        if (age >= 18) {
+            log("Adult");
+        } elif (age >= 13) {
+            log("Teenager");
+        } else {
+            log("Child");
+        }
+    }
+
+result (18):
+    Adult
+result (13):
+    Teenager
+result (12):
+    Child

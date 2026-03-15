@@ -1,3 +1,4 @@
+use std::env;
 use std::fmt::{Display, Formatter};
 use colored;
 use colored::Colorize;
@@ -103,6 +104,11 @@ macro_rules! print_error {
 }
 
 pub fn print_log(log: &Log) {
+    let test = env::var("TEST").unwrap_or_else(|_| "NONE".to_string());
+    if test.as_str() == "ALL" {
+        return;
+    }
+    
     let txt = log.to_string();
     match log.kind {
         LogKind::Info =>

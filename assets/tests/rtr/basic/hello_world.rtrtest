@@ -1,0 +1,9 @@
+name: Hello World
+
+code (program):
+    event(onload) {
+        log("hello world");
+    }
+
+result:
+    hello world

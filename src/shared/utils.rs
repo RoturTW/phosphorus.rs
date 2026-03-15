@@ -19,3 +19,35 @@ pub fn ord(str: &str) -> f32 {
         str.chars().next().unwrap() as u32 as f32
     }
 }
+
+pub fn remove_indent(input: &str) -> String {
+    let lines: Vec<&str> = input.split('\n').collect();
+    
+    let non_empty: Vec<&str> = lines
+        .iter()
+        .copied()
+        .filter(|l| !l.trim().is_empty())
+        .collect();
+    
+    if non_empty.is_empty() {
+        return input.to_string();
+    }
+    
+    let min_indent = non_empty
+        .iter()
+        .map(|l| l.chars().take_while(|c| *c == ' ').count())
+        .min()
+        .unwrap();
+    
+    lines
+        .iter()
+        .map(|l| {
+            if l.len() >= min_indent {
+                &l[min_indent..]
+            } else {
+                ""
+            }
+        })
+        .collect::<Vec<&str>>()
+        .join("\n")
+}

@@ -1,0 +1,16 @@
+name: Object Functions
+
+code (program):
+    event(onload) {
+        my_obj := { goob: "bleh", fr: 3 };
+        log(keys(my_obj));
+        log(values(my_obj));
+        log(has(my_obj, "fr"));
+        log(has(my_obj, "silly"));
+        log(length(my_obj));
+        log(obj());
+    }
+
+result:
+    ["goob", "fr"] ["bleh", 3] true false 2 {}
+    ["fr", "goob"] [3, "bleh"] true false 2 {}

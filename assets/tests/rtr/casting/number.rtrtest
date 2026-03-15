@@ -1,0 +1,26 @@
+name: Number Casting
+desc: checks to see how types cast to numbers
+
+code (expr):
+    +$1
+
+result (null):
+    NaN
+result ("1"):
+    1
+result ("hi"):
+    NaN
+result (1):
+    1
+result (1%):
+    0.01
+result (true):
+    1
+result (false):
+    0
+result ([]):
+    NaN
+result ({}):
+    NaN
+result (#fff):
+    NaN

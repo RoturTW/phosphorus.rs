@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use crate::{print_raw, print_warn, Log, LogKind, print_log};
+use crate::{print_raw, print_warn, Log, LogKind, print_log, print_error};
 use crate::rtr::ast::node::Parameter;
 use crate::rtr::error::Error;
 use crate::rtr::{IndexKey};
+use crate::rtr::log::{RTRLog, RTRLogKind};
 use crate::rtr::runtime::instruction::VmInstruction;
 use crate::rtr::runtime::memory::{MemPointer, Memory};
 use crate::shared::color::Color;
@@ -72,17 +73,17 @@ impl Value {
         }
     }
     
-    pub fn call(&self, memory: &mut Memory, args: &[MemPointer]) -> Result<MemPointer, Error> {
+    pub fn call(&self, logs: &mut Vec<RTRLog>, memory: &mut Memory, args: &[MemPointer]) -> Result<MemPointer, Error> {
         match self {
             Value::Function(Function::Builtin(builtin)) => {
-                return builtin.call(memory, args);
+                builtin.call(logs, memory, args)
             }
             // Vm functions are handled in the call instruction
             
             _ => {
-                return Err(Error::CannotCall {
+                Err(Error::CannotCall {
                     func: self.stringify(memory)
-                });
+                })
             }
         }
         
@@ -117,6 +118,9 @@ impl Value {
     
     pub fn stringify(&self, memory: &Memory) -> String {
         match self {
+            Value::Type { data } =>
+                format!("<type:{data}>"),
+            
             Value::Null =>
                 String::from("null"),
             Value::Str { data } =>
@@ -189,6 +193,8 @@ impl Value {
                 data.parse().unwrap_or(f32::NAN),
             Value::Num { data } =>
                 *data,
+            Value::Percentage { data } =>
+                *data / 100.0,
             Value::Bool { data } =>
                 if *data { 1.0 } else { 0.0 },
             
@@ -253,10 +259,12 @@ impl Value {
         // TODO: allow for negative indexes
         match self {
             Value::Str { data } =>
+                // TODO: handle out of range
                 memory.alloc(Value::Str {
                     data: data[key.numbify().trunc() as usize..].to_string()
                 }),
             Value::Num { data } | Value::Percentage { data } =>
+                // TODO: handle out of range
                 memory.alloc(Value::Str {
                     data: data.to_string()[key.numbify().trunc() as usize..].to_string()
                 }),
@@ -483,21 +491,49 @@ pub enum BuiltinFunction {
 impl BuiltinFunction {
     #[allow(clippy::too_many_lines)]
     #[allow(clippy::unnecessary_wraps)]
-    pub fn call(&self, memory: &mut Memory, args: &[MemPointer]) -> Result<MemPointer, Error> {
+    pub fn call(&self, logs: &mut Vec<RTRLog>, memory: &mut Memory, args: &[MemPointer]) -> Result<MemPointer, Error> {
         match self {
             BuiltinFunction::Log => {
-                print_log!(LogSource::Rtr, "{}",
-                     args
-                         .iter()
-                         .map(|ptr| memory.get(*ptr))
-                         .map(|v| v.stringify(memory))
-                         .collect::<Vec<_>>()
-                         .join(" ")
-                );
+                let text = args
+                    .iter()
+                    .map(|ptr| memory.get(*ptr))
+                    .map(|v| v.stringify(memory))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                
+                print_log!(LogSource::Rtr, "{text}");
+                
+                logs.push(RTRLog {
+                    kind: RTRLogKind::Log,
+                    text
+                });
             },
-            // TODO: Error
-            // return is handled in call instruction
-            // TODO: Typeof
+            BuiltinFunction::Error => {
+                // TODO: have this error and then return and call the event
+                let text = args
+                    .iter()
+                    .map(|ptr| memory.get(*ptr))
+                    .map(|v| v.stringify(memory))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                
+                print_error!(LogSource::Rtr, "{text}");
+                
+                logs.push(RTRLog {
+                    kind: RTRLogKind::Error,
+                    text
+                });
+            },
+            BuiltinFunction::Return => {
+                // return is handled in call instruction
+            }
+            BuiltinFunction::Typeof => {
+                return Ok(
+                    memory.alloc(Value::Type {
+                        data: memory.get(args[0]).get_type()
+                    })
+                )
+            }
             BuiltinFunction::Length => {
                 // TODO: check amount of args
                 return Ok(
@@ -638,9 +674,42 @@ impl BuiltinFunction {
                 )
             }
             
-            // TODO: toUpper
-            // TODO: toLower
-            // TODO: toTitle
+            BuiltinFunction::ToUpper => {
+                // TODO: handle incorrect amount of args
+                let str = memory.get(args[0]).stringify(memory);
+                return Ok(
+                    memory.alloc(
+                        Value::Str {
+                            data: str.to_uppercase()
+                        }
+                    )
+                )
+            }
+            BuiltinFunction::ToLower => {
+                // TODO: handle incorrect amount of args
+                let str = memory.get(args[0]).stringify(memory);
+                return Ok(
+                    memory.alloc(
+                        Value::Str {
+                            data: str.to_lowercase()
+                        }
+                    )
+                )
+            }
+            BuiltinFunction::ToTitle => {
+                // TODO: handle incorrect amount of args
+                let str = memory.get(args[0]).stringify(memory);
+                let words: Vec<String> = str.split(' ')
+                    .map(|w| w[0..1].to_uppercase() + &w[1..].to_lowercase())
+                    .collect();
+                return Ok(
+                    memory.alloc(
+                        Value::Str {
+                            data: words.join(" ")
+                        }
+                    )
+                )
+            }
             
             // array
             BuiltinFunction::Item => {
@@ -724,8 +793,6 @@ impl BuiltinFunction {
                     data: !memory.get(args[0]).boolify()
                 }))
             }
-            
-            _ => todo!("{:?}", self)
         }
         
         Ok(memory.alloc(Value::Null))

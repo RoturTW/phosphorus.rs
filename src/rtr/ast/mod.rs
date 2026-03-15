@@ -37,15 +37,16 @@ pub fn tokenise(text: &str) -> Vec<Token> {
         };
     }
     
-    let mut tokens: Vec<Token> = Vec::new();
-    let mut buf: String = String::new();
-    
     let mut pos: Position = Position {
         ln: 1,
         col: 1,
         i: 0,
         script: text.to_string()
     };
+    
+    let mut tokens: Vec<Token> = Vec::new();
+    let mut buf: String = String::new();
+    let mut buf_start = pos.clone();
     
     let mut comment_type: CommentType = CommentType::None;
     let mut i: usize = 0;
@@ -93,7 +94,13 @@ pub fn tokenise(text: &str) -> Vec<Token> {
         
         if SPLIT_CHARS.contains(&char) {
             if !buf.is_empty() {
-                add_buf!(buf, tokens, pos);
+                tokens.push(Token {
+                    token_type: buf.clone().into(),
+                    range: Range {
+                        start: buf_start.clone(),
+                        end: pos.clone(),
+                    }
+                });
                 buf = String::new();
             }
             tokens.push(Token {
@@ -105,6 +112,9 @@ pub fn tokenise(text: &str) -> Vec<Token> {
             });
             pos += 1;
         } else {
+            if buf.is_empty() {
+                buf_start = pos.clone();
+            }
             buf.push(char);
             pos += 1;
         }
@@ -113,7 +123,13 @@ pub fn tokenise(text: &str) -> Vec<Token> {
     }
     
     if !buf.is_empty() {
-        add_buf!(buf, tokens, pos);
+        tokens.push(Token {
+            token_type: buf.clone().into(),
+            range: Range {
+                start: buf_start.clone(),
+                end: pos.clone(),
+            }
+        });
     }
     
     tokens
