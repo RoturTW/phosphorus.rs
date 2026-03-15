@@ -1,5 +1,6 @@
 use crate::rtr::ast::node::{AssignmentOp, AstConditionalType, AstExpression, AstProgram, AstStatement, AstTopLevelStatement, BinaryOp, EventTarget, PropertyKey, Target, UnaryOp};
 use crate::rtr::error::Error;
+use crate::shared::color::parse_hex_color;
 use crate::shared::range::Range;
 use crate::shared::position::Position;
 use crate::shared::token::{Token, TokenType};
@@ -661,7 +662,20 @@ impl Parser {
     }
     fn call(&mut self) -> Maybe<AstExpression> {
         let start = self.get_next_start();
-        // TODO: call(event) support
+        
+        if let TokenType::Text(txt) = self.peek().token_type
+            && txt.as_str() == "call" {
+                self.consume();
+                self.consume_whitespace();
+                self.expect(TokenType::OpenParen)?;
+                self.consume_whitespace();
+                let target = self.expect_text()?;
+                self.consume_whitespace();
+                self.expect(TokenType::CloseParen)?;
+                return Ok(AstExpression::CallEvent {
+                    target
+                })
+            }
         
         let mut expr = self.func()?;
         self.consume_whitespace();
@@ -798,7 +812,9 @@ impl Parser {
         if self.peek() == TokenType::OpenCurly {
             return self.obj();
         }
-        // TODO: colors
+        if self.peek() == TokenType::Hash {
+            return self.color();
+        }
         if [TokenType::Quote, TokenType::DoubleQuote, TokenType::BackQuote].contains(&self.peek().token_type) {
             return self.str();
         }
@@ -875,6 +891,24 @@ impl Parser {
         
         Ok(AstExpression::Object {
             pairs,
+            range: Range { start, end: self.get_last_end() }
+        })
+    }
+    fn color(&mut self) -> Maybe<AstExpression> {
+        let start = self.get_next_start();
+        self.expect(TokenType::Hash)?;
+        let txt = self.expect_text()?;
+        
+        let data_start = self.get_next_start();
+        let content = parse_hex_color(&txt);
+        if let Err(_err) = content {
+            return Err(Error::InvalidColor {
+                range: Range { start: data_start, end: self.get_last_end() }
+            })
+        }
+        
+        Ok(AstExpression::Color {
+            content: content.unwrap(),
             range: Range { start, end: self.get_last_end() }
         })
     }

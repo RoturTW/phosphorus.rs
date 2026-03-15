@@ -67,6 +67,8 @@ impl Memory {
     pub fn add_ref(&mut self, ptr: MemPointer) {
         assert!(self.has_cell(ptr), "ptr to dead cell");
         debug_log(0, &format!("add ref {}", ptr.id.0));
+        let cell = self.cells[ptr.id.0].as_mut().unwrap();
+        debug_log(1, &format!("now {}", cell.refs + 1));
         self.cells[ptr.id.0].as_mut().unwrap().refs += 1;
     }
     pub fn rm_ref(&mut self, ptr: MemPointer) {
@@ -76,6 +78,7 @@ impl Memory {
         if cell.refs > 0 {
             cell.refs -= 1;
         }
+        debug_log(1, &format!("now {}", cell.refs));
     }
     
     // accessing

@@ -15,6 +15,12 @@ impl Color {
     pub fn hex(input: &str) -> Result<Color, &'static str> {
         parse_hex_color(input)
     }
+    pub fn to_hex_rgb(self) -> String {
+        format!("#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
+    }
+    pub fn to_hex_rgba(self) -> String {
+        format!("#{:02X}{:02X}{:02X}{:02X}", self.r, self.g, self.b, self.a)
+    }
     pub fn above_zero(self) -> bool {
         self.r > 0
         || self.g > 0

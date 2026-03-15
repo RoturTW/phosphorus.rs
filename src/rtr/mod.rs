@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::time::Instant;
 use crate::{print_raw, print_warn, Log, LogKind, print_log};
 use crate::rtr::ast::node::{AssignmentOp, AstProgram, AstStatement, AstTopLevelStatement, BinaryOp, EventTarget, UnaryOp};
 use crate::rtr::ast::parser::Parser;
@@ -10,7 +9,7 @@ use crate::rtr::runtime::compiler::CompileContext;
 use crate::rtr::runtime::instruction::VmInstruction;
 use crate::rtr::runtime::memory::{MemPointer, Memory};
 use crate::rtr::runtime::scope::Scope;
-use crate::rtr::runtime::value::{BuiltinFunction, Function, TypeValue, Value};
+use crate::rtr::runtime::value::{BuiltinFunction, Function, Value};
 use crate::shared::logging::LogSource;
 
 pub mod ast;
@@ -35,14 +34,21 @@ pub struct RTRInstance {
 
 impl RTRInstance {
     pub fn new() -> RTRInstance {
-        
-        RTRInstance {
+        let mut inst = RTRInstance {
             ast: None,
             
             stack: Vec::new(),
             scope: Scope::new(),
             memory: Memory::default()
-        }
+        };
+        
+        inst.init();
+        
+        inst
+    }
+    
+    pub fn init(&mut self) {
+        self.new_scope();
     }
     
     fn set_alloc(&mut self, name: &str, value: Value) {
@@ -249,8 +255,6 @@ impl RTRInstance {
     
     #[allow(clippy::too_many_lines)]
     pub fn run_instructions(&mut self, instructions: &[VmInstruction]) -> Result<Option<MemPointer>, Error> {
-        self.new_scope();
-        
         let mut labels: HashMap<String, usize> = instructions
             .iter()
             .enumerate()
@@ -263,6 +267,8 @@ impl RTRInstance {
             })
             .collect();
         
+        let start_scope_layers = self.scope.layers.iter().len();
+        
         let mut i = 0;
         let mut instructions_ran = 0;
         while i < instructions.len() && instructions_ran < 10000 {
@@ -270,14 +276,14 @@ impl RTRInstance {
             let inst = &instructions[i];
             
             if false {
-                println!("{:?}\n    {:?}", inst, self.stack.iter().map(|ptr| {
+                println!("{:?}\n    {:?}\n    {:?}", inst, self.stack.iter().map(|ptr| {
                     let cell = self.memory.get_cell_option(*ptr);
                     if let Some(cell) = cell {
                         format!("{:?}", cell.val)
                     } else {
                         String::from("EMPTY")
                     }
-                }).collect::<Vec<_>>());
+                }).collect::<Vec<_>>(), self.stack);
             }
             
             match inst {
@@ -314,15 +320,44 @@ impl RTRInstance {
                     
                     let out_ptr = {
                         let func = self.memory.get_mut(func_ptr).clone();
-                        if let Value::Function(Function::Vm { body, params }) = func {
-                            self.scope.new_layer();
-                            for (i, param) in params.iter().enumerate() {
-                                let arg = *args.get(i).unwrap_or(&self.memory.alloc(Value::Null));
-                                self.scope.decl_var(&mut self.memory, param.name.clone(), arg);
+                        match &func {
+                            Value::Function(Function::Vm { body, params }) => {
+                                self.scope.new_layer();
+                                for (i, param) in params.iter().enumerate() {
+                                    let arg = *args.get(i).unwrap_or(&self.memory.alloc(Value::Null));
+                                    self.scope.decl_var(&mut self.memory, param.name.clone(), arg);
+                                }
+                                self.run_instructions(body)?.unwrap_or(self.memory.alloc(Value::Null))
                             }
-                            self.run_instructions(&body)?.unwrap_or(self.memory.alloc(Value::Null))
-                        } else {
-                            func.call(&mut self.memory, &args)?
+                            Value::Function(Function::Builtin(BuiltinFunction::Return)) => {
+                                let ptr = args.first().copied();
+                                
+                                // add ref to stop from being freed
+                                if let Some(ptr) = &ptr {
+                                    self.memory.add_ref(*ptr);
+                                }
+                                
+                                // free scope layers
+                                for _ in start_scope_layers..self.scope.layers.len() {
+                                    let layer = &self.scope.pop_layer();
+                                    self.scope.free_layer(&mut self.memory, layer);
+                                }
+                                
+                                // rm ref
+                                if let Some(ptr) = &ptr {
+                                    self.memory.rm_ref(*ptr);
+                                }
+                                
+                                // free any spare arguments
+                                for arg in &args[1..] {
+                                    self.memory.free(*arg);
+                                }
+                                
+                                return Ok(ptr);
+                            }
+                            _ => {
+                                func.call(&mut self.memory, &args)?
+                            }
                         }
                     };
                     
@@ -334,6 +369,9 @@ impl RTRInstance {
                         self.memory.free(arg);
                     }
                 }
+                VmInstruction::CallEv(name) => {
+                    self.run_event_target(&EventTarget::Global { name: name.clone() })?;
+                }
                 VmInstruction::Unary(op) => {
                     let (right, right_ptr) = self.pop_stack();
                     
@@ -341,14 +379,14 @@ impl RTRInstance {
                     
                     self.push_stack_alloc(match op {
                         UnaryOp::Minus =>
-                            Value::Num { data: -<Value as Into<f32>>::into(right) },
+                            Value::Num { data: -right.numbify() },
                         UnaryOp::Number =>
-                            Value::Num { data: <Value as Into<f32>>::into(right) },
+                            Value::Num { data: right.numbify() },
                         
                         UnaryOp::Invert =>
-                            Value::Bool { data: !<Value as Into<bool>>::into(right) },
+                            Value::Bool { data: !right.boolify() },
                         UnaryOp::Boolify =>
-                            Value::Bool { data: <Value as Into<bool>>::into(right) }
+                            Value::Bool { data: right.boolify() }
                     });
                     
                     self.memory.free(right_ptr);
@@ -470,6 +508,11 @@ impl RTRInstance {
                         data: map
                     });
                 }
+                VmInstruction::Color(color) => {
+                    self.push_stack_alloc(Value::Color {
+                        data: *color
+                    });
+                }
                 
                 // scope
                 VmInstruction::Get(name) => {
@@ -482,7 +525,6 @@ impl RTRInstance {
                 }
                 VmInstruction::Decl(name) => {
                     let ptr = self.pop_stack_ptr();
-                    self.memory.add_ref(ptr);
                     self.scope.decl_var(&mut self.memory, name.clone(), ptr);
                     self.push_stack_ptr(ptr);
                 }
@@ -524,7 +566,7 @@ impl RTRInstance {
                     let val = val.clone();
                     self.memory.add_ref(val_ptr);
                     
-                    let obj = self.memory.get_mut(obj_ptr);
+                    //let _obj = self.memory.get_mut(obj_ptr);
                     
                     if let AssignmentOp::Default = op {
                         let old_ptr = {

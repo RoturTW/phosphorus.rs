@@ -20,6 +20,10 @@ pub enum Error {
         got: Box<Token>,
         range: Box<Range>
     },
+    InvalidColor {
+        
+        range: Range
+    },
     
     // runtime
     CannotCall {
@@ -37,7 +41,7 @@ impl Display for Error {
                 write!(f, "placeholder err :P"),
             
             // ast
-            Error::UnexpectedToken { token, range } =>
+            Error::UnexpectedToken { token, .. } =>
                 write!(f, "unexpected token '{token:?}'"),
             Error::Expected { wanted, got, range } =>
                 write!(f, "expected {}, got '{got}' at {range}",
@@ -49,6 +53,8 @@ impl Display for Error {
                 ),
             Error::ExpectedText { got, ..} =>
                 write!(f, "expected text, got {got}"),
+            Error::InvalidColor { .. } =>
+                write!(f, "invalid hex color, must follow #rgb or #rrggbb"),
             
             // runtime
             Error::CannotCall { func } =>

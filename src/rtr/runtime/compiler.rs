@@ -145,6 +145,7 @@ pub fn compile_expressions(ctx: &mut CompileContext, expressions: Vec<AstExpress
     
     Ok(instructions)
 }
+#[allow(clippy::too_many_lines)]
 pub fn compile_expression(ctx: &mut CompileContext, expression: AstExpression) -> Result<Vec<VmInstruction>, Error> {
     let mut instructions = Vec::new();
     
@@ -155,6 +156,10 @@ pub fn compile_expression(ctx: &mut CompileContext, expression: AstExpression) -
             instructions.append(compile_expression(ctx, *func)?.as_mut());
             instructions.append(compile_expressions(ctx, args)?.as_mut());
             instructions.push(VmInstruction::Call(len));
+        }
+        AstExpression::CallEvent { target } => {
+            instructions.push(VmInstruction::CallEv(target));
+            instructions.push(VmInstruction::Null);
         }
         AstExpression::Declare { name, value, .. } => {
             instructions.append(compile_expression(ctx, *value)?.as_mut());
@@ -215,23 +220,6 @@ pub fn compile_expression(ctx: &mut CompileContext, expression: AstExpression) -
         },
         
         // values
-        AstExpression::Array { items, .. } => {
-            let len = items.len();
-            instructions.append(compile_expressions(ctx, items)?.as_mut());
-            instructions.push(VmInstruction::Arr {
-                len
-            });
-        }
-        AstExpression::Object { pairs, .. } => {
-            let mut keys = Vec::new();
-            for pair in pairs {
-                keys.push(pair.0);
-                instructions.append(compile_expression(ctx, pair.1)?.as_mut());
-            }
-            instructions.push(VmInstruction::Obj {
-                keys
-            });
-        }
         AstExpression::String { content, .. } => {
             instructions.push(VmInstruction::Str(content));
         }
@@ -249,6 +237,26 @@ pub fn compile_expression(ctx: &mut CompileContext, expression: AstExpression) -
                     .map(|name| Parameter { name: name.clone() })
                     .collect()
             });
+        }
+        AstExpression::Array { items, .. } => {
+            let len = items.len();
+            instructions.append(compile_expressions(ctx, items)?.as_mut());
+            instructions.push(VmInstruction::Arr {
+                len
+            });
+        }
+        AstExpression::Object { pairs, .. } => {
+            let mut keys = Vec::new();
+            for pair in pairs {
+                keys.push(pair.0);
+                instructions.append(compile_expression(ctx, pair.1)?.as_mut());
+            }
+            instructions.push(VmInstruction::Obj {
+                keys
+            });
+        }
+        AstExpression::Color { content, .. } => {
+            instructions.push(VmInstruction::Color(content));
         }
     }
     

@@ -1,7 +1,3 @@
 event(onload) {
-  bleh = null;
-  bleh ??= "hi";
-  log(bleh);
-
-  log(null ?? "fr");
+    log(?#000);
 }

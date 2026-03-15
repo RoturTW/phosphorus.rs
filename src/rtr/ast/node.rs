@@ -1,3 +1,4 @@
+use crate::shared::color::Color;
 use crate::shared::range::Range;
 
 #[derive(Debug, Clone)]
@@ -78,6 +79,9 @@ pub enum AstExpression {
         func: Box<AstExpression>,
         range: Range
     },
+    CallEvent {
+        target: String
+    },
     Declare {
         name: String,
         value: Box<AstExpression>,
@@ -113,14 +117,6 @@ pub enum AstExpression {
     },
     
     // values
-    Array {
-        items: Vec<AstExpression>,
-        range: Range
-    },
-    Object {
-        pairs: Vec<(String, AstExpression)>,
-        range: Range
-    },
     String {
         content: String,
         range: Range
@@ -136,6 +132,18 @@ pub enum AstExpression {
     Func {
         params: Vec<String>,
         body: Box<AstStatement>,
+        range: Range
+    },
+    Array {
+        items: Vec<AstExpression>,
+        range: Range
+    },
+    Object {
+        pairs: Vec<(String, AstExpression)>,
+        range: Range
+    },
+    Color {
+        content: Color,
         range: Range
     }
 }

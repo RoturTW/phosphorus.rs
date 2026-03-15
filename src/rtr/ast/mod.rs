@@ -5,12 +5,12 @@ use crate::shared::token::Token;
 pub mod parser;
 pub mod node;
 
-const SPLIT_CHARS: [char; 28] = [
+const SPLIT_CHARS: [char; 29] = [
     // rtr
     '(',')',
     '[',']',
     '{','}',
-    ',',';',':','=','.','~',
+    ',',';',':','=','.','#','~',
     '+','-','*','/','%','^',
     '\\','<','>',
     '\'','"','`',

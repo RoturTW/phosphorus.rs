@@ -11,7 +11,7 @@ pub enum VmInstruction {
     
     // operations
     Call(usize),
-    // TODO: CallEv(usize),
+    CallEv(String),
     Unary(UnaryOp),
     Binary(BinaryOp),
     Prop,

@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use crate::{print_raw, print_warn, Log, LogKind, print_log};
 use crate::rtr::ast::node::Parameter;
 use crate::rtr::error::Error;
-use crate::rtr::{IndexKey, RTRInstance};
+use crate::rtr::{IndexKey};
 use crate::rtr::runtime::instruction::VmInstruction;
 use crate::rtr::runtime::memory::{MemPointer, Memory};
 use crate::shared::color::Color;
+use crate::shared::logging::LogSource;
 use crate::shared::utils::{chr, ord};
 
 #[derive(Debug, Clone)]
@@ -84,7 +86,7 @@ impl Value {
             }
         }
         
-        Ok(memory.alloc(Value::Null))
+        //Ok(memory.alloc(Value::Null))
     }
     
     pub fn get_type(&self) -> TypeValue {
@@ -145,7 +147,9 @@ impl Value {
                 }
                 format!("{{{str}}}")
             }
-            // TODO: color
+            Value::Color { data } => {
+                data.to_hex_rgb()
+            }
             
             _ => format!("<{}>", self.get_type())
         }
@@ -298,7 +302,7 @@ impl Value {
             _ => Vec::new()
         }
     }
-    pub fn values(&self, memory: &mut Memory) -> Vec<MemPointer> {
+    pub fn values(&self, _memory: &mut Memory) -> Vec<MemPointer> {
         match self {
             Value::Arr { items } => {
                 items.clone()
@@ -359,7 +363,8 @@ impl Value {
 impl From<Value> for f32 {
     fn from(value: Value) -> Self {
         match value {
-            // TODO: str -> num
+            Value::Str { data } =>
+                data.parse().unwrap_or(Self::NAN),
             Value::Num { data } | Value::Percentage { data } =>
                 data,
             Value::Bool { data } =>
@@ -481,7 +486,7 @@ impl BuiltinFunction {
     pub fn call(&self, memory: &mut Memory, args: &[MemPointer]) -> Result<MemPointer, Error> {
         match self {
             BuiltinFunction::Log => {
-                println!("{}",
+                print_log!(LogSource::Rtr, "{}",
                      args
                          .iter()
                          .map(|ptr| memory.get(*ptr))
@@ -491,9 +496,10 @@ impl BuiltinFunction {
                 );
             },
             // TODO: Error
-            // TODO: Return
+            // return is handled in call instruction
             // TODO: Typeof
             BuiltinFunction::Length => {
+                // TODO: check amount of args
                 return Ok(
                     memory.alloc(Value::Num {
                         data: memory.get(args[0]).length() as f32
