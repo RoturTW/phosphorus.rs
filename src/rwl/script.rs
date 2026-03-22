@@ -8,7 +8,9 @@ pub struct RWLScript {
     pub module: RTRModule
 }
 impl RWLScript {
-    pub fn new(module: RTRModule) -> RWLScript {
+    pub fn new(mut module: RTRModule) -> RWLScript {
+        module.inject();
+        
         RWLScript {
             module
         }

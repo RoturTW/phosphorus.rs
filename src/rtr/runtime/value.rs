@@ -436,6 +436,7 @@ impl Display for TypeValue {
 #[derive(Debug, Clone)]
 pub enum Function {
     Builtin(BuiltinFunction),
+    Rust(fn(logs: &mut Vec<RTRLog>, memory: &mut Memory, args: &[MemPointer]) -> Result<MemPointer, Error>),
     Vm {
         body: Vec<VmInstruction>,
         params: Vec<Parameter>

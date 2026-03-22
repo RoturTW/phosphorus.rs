@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use crate::{print_raw, print_warn, Log, LogKind, print_log};
+use crate::rtr::apis::inject;
 use crate::rtr::ast::node::{AssignmentOp, AstProgram, AstStatement, AstTopLevelStatement, BinaryOp, EventTarget, UnaryOp};
 use crate::rtr::ast::parser::Parser;
 use crate::rtr::ast::tokenise;
@@ -17,6 +18,7 @@ pub mod ast;
 pub mod runtime;
 pub(crate) mod error;
 pub mod log;
+mod apis;
 
 #[derive(Debug)]
 struct Event {
@@ -60,6 +62,11 @@ impl RTRModule {
     
     pub fn init(&mut self) {
         self.new_scope();
+    }
+    
+    // add apis
+    pub fn inject(&mut self) {
+        inject(&mut self.memory, &mut self.scope);
     }
     
     fn set_alloc(&mut self, name: &str, value: Value) {

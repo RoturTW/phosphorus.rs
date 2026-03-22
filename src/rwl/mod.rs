@@ -107,9 +107,7 @@ impl RWLInstance {
             return Err(Error::RTR(err));
         }
         
-        let script = RWLScript {
-            module
-        };
+        let script = RWLScript::new(module);
         
         self.scripts.push(script);
         
