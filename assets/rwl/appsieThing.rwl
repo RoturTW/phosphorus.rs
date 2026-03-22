@@ -1,0 +1,19 @@
+root [color=theme:prim] {
+  frame [Horizontal] {
+    section [size=100, rounding_tr=20, rounding_br=20] {
+      "fr" [color=theme:seco]
+    },
+    section {
+      frame [Vertical] {
+        section [size=50] {
+          "maybe?" [color=theme:text, anchor="l", margin_left=10, size=15]
+        },
+        section [color=theme:back, rounding=20, margin_r=10, margin_b=10, padding=20] {
+          "blehhh" [color=theme:text],
+          "fr",
+          ":P" [anchor="bl",size=5]
+        }
+      }
+    }
+  }
+}

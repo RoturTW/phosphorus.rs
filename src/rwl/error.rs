@@ -1,10 +1,12 @@
 use std::fmt::{Display, Formatter};
 use crate::shared::range::Range;
 use crate::shared::token::{Token, TokenType};
+use crate::rtr::error::Error as RTRError;
 
 #[derive(Debug)]
 pub enum Error {
     Placeholder,
+    RTR(RTRError),
     
     // ast
     UnexpectedToken {
@@ -43,6 +45,8 @@ impl Display for Error {
         match self {
             Error::Placeholder =>
                 write!(f, "placeholder err :P"),
+            Error::RTR(rtr) =>
+                write!(f, "{}", rtr),
             
             // ast
             Error::UnexpectedToken { token, .. } =>

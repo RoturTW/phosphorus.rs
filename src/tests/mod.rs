@@ -7,7 +7,7 @@ use std::fs::{read_dir, read_to_string, DirEntry};
 use std::io;
 use colored::Colorize;
 use crate::rtr::ast::node::EventTarget;
-use crate::rtr::RTRInstance;
+use crate::rtr::{RTRModule};
 use crate::tests::ast::tokenise;
 use crate::tests::parser::{Code, CodePart, Parser, Test};
 
@@ -96,7 +96,7 @@ pub fn run_test(test: &Test) -> bool {
 }
 
 pub fn run_test_result(test: &Test, expected: Vec<String>, vars: &[String]) -> Result<TestResultOutput, String> {
-    let mut inst = RTRInstance::new();
+    let mut inst = RTRModule::new();
     
     let code = match test.code.clone() {
         Code::Expr(code) => format!("event(onload){{log(\n{}\n);}}", process_code(code, vars)),

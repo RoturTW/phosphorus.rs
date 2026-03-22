@@ -15,7 +15,7 @@ use crate::shared::logging::LogSource;
 
 pub mod ast;
 pub mod runtime;
-mod error;
+pub(crate) mod error;
 pub mod log;
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ struct Event {
 }
 
 #[derive(Debug)]
-pub struct RTRInstance {
+pub struct RTRModule {
     pub ast: Option<AstProgram>,
     
     // runtime
@@ -36,9 +36,14 @@ pub struct RTRInstance {
     pub logs: Vec<RTRLog>
 }
 
-impl RTRInstance {
-    pub fn new() -> RTRInstance {
-        let mut inst = RTRInstance {
+#[derive(Debug)]
+pub struct RTRInstance {
+
+}
+
+impl RTRModule {
+    pub fn new() -> RTRModule {
+        let mut module = RTRModule {
             ast: None,
             
             stack: Vec::new(),
@@ -48,9 +53,9 @@ impl RTRInstance {
             logs: Vec::new()
         };
         
-        inst.init();
+        module.init();
         
-        inst
+        module
     }
     
     pub fn init(&mut self) {

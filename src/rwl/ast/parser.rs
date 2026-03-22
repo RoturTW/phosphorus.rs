@@ -4,11 +4,17 @@ use crate::shared::position::Position;
 use crate::shared::token::{Token, TokenType};
 use crate::rwl::error::{Error};
 use crate::rwl::value::{PropertyPath, ThemeProperty};
-use crate::shared::color::{parse_hex_color, Color};
-use crate::shared::utils::{is_alpha, is_numeric};
+use crate::shared::color::{parse_hex_color};
+use crate::shared::utils::{is_alpha, is_numeric, remove_indent};
 
 pub type AstNodeOrErr = Result<AstNode, Error>;
 pub type AstValueOrErr = Result<AstValue, Error>;
+
+enum QuoteType {
+    Single,
+    Double,
+    Back
+}
 
 #[derive(Debug)]
 pub struct Parser {
@@ -144,6 +150,58 @@ impl Parser {
         
         Ok(statements)
     }
+    fn parse_text(&mut self) -> Result<String, Error> {
+        let mut text: String = String::new();
+        
+        self.consume_whitespace();
+        self.expect(TokenType::OpenCurly)?;
+        
+        while self.peek() == TokenType::Space { self.consume(); }
+        if self.peek() == TokenType::Newline { self.consume(); }
+        
+        let mut quote_type: Option<QuoteType> = None;
+        let mut depth: i32 = 1;
+        
+        while !self.at_end() {
+            if quote_type.is_none() {
+                match self.peek().token_type {
+                    TokenType::Quote => {
+                        quote_type = Some(QuoteType::Single);
+                    }
+                    TokenType::DoubleQuote => {
+                        quote_type = Some(QuoteType::Double);
+                    }
+                    TokenType::BackQuote => {
+                        quote_type = Some(QuoteType::Back);
+                    }
+                    
+                    _ => ()
+                }
+            }
+            
+            if self.peek() == TokenType::OpenCurly {
+                depth += 1;
+            }
+            if self.peek() == TokenType::CloseCurly {
+                depth -= 1;
+            }
+            
+            if self.peek() == TokenType::CloseCurly {
+                if depth == 0 {
+                    break;
+                }
+            }
+            
+            text = format!("{text}{}", self.consume());
+        }
+        
+        text = remove_indent(&text);
+        
+        self.consume_whitespace();
+        self.expect(TokenType::CloseCurly)?;
+        
+        Ok(text)
+    }
     
     fn statement(&mut self) -> AstNodeOrErr {
         self.consume_whitespace();
@@ -175,6 +233,13 @@ impl Parser {
         let key = self.consume().to_string();
         
         // handle scripts
+        if key.as_str() == "script" {
+            let header = self.header()?;
+            
+            let content = self.parse_text()?;
+            
+            return Ok(AstNode::Script(content, header));
+        }
         
         self.consume_whitespace();
         let header = self.header()?;

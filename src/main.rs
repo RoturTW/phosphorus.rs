@@ -1,7 +1,7 @@
 use colored::Colorize;
 use std::env;
 use std::path::PathBuf;
-use crate::rtr::RTRInstance;
+use crate::rtr::{RTRModule};
 use crate::shared::area::Area;
 use crate::shared::color::Color;
 use crate::shared::document::Document;
@@ -30,7 +30,11 @@ fn window_conf() -> macroquad::window::Conf {
 async fn app() {
     let mut doc = Document::new();
     doc.rwl_instance.parse(&read_file(&PathBuf::from("./assets/rwl/test.rwl")).unwrap());
-    doc.rwl_instance.instance();
+    doc.rwl_instance.instance().unwrap();
+    
+    println!("{:?}", doc.rwl_instance.ast);
+    
+    println!(":3");
     
     let mut gl_ctx = shared::graphics::GLCtx::new().await;
     let theme = Theme::default();
@@ -44,8 +48,6 @@ async fn app() {
         
         let mut handle = gl_ctx.begin_drawing();
         
-        handle.clear_background(Color { r: 0, g: 0, b: 0, a: 255 });
-        
         if last_size != Vec2(width, height) {
             doc.rwl_instance.update((&mut handle, &theme), &Area {
                 a: Vec2(0.0, 0.0),
@@ -54,7 +56,9 @@ async fn app() {
             last_size = Vec2(width, height);
         }
         
-        doc.rwl_instance.render(&mut handle);
+        handle.clear_background(Color { r: 0, g: 0, b: 0, a: 255 });
+        
+        doc.render(&mut handle);
         
         gl_ctx.finish_frame().await;
     }
@@ -70,9 +74,9 @@ async fn main() {
         }
         
         "RTR" => {
-            let mut inst = RTRInstance::new();
+            let mut inst = RTRModule::new();
             
-            inst.parse(&read_file(&PathBuf::from("./assets/rtr/test.rtr")).unwrap());
+            inst.parse(&read_file(&PathBuf::from("./assets/rtr/test.rtr")).unwrap()).unwrap();
             
             //println!("{inst:?}");
             

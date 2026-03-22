@@ -1,8 +1,11 @@
 use std::collections::HashMap;
+use crate::rtr::RTRModule;
 use crate::rwl::ast::node::{AstHeader, AstHeaderItem, AstNode, AstValue};
 use crate::rwl::ast::parser::Parser;
 use crate::rwl::ast::tokenise;
 use crate::rwl::element::{NodeWrapper, Node, Header, UpdateCtx, ContainerContext};
+use crate::rwl::error::Error;
+use crate::rwl::script::RWLScript;
 use crate::rwl::value::Value;
 use crate::shared::area::Area;
 use crate::shared::graphics::GLDrawHandle;
@@ -11,11 +14,13 @@ pub mod ast;
 pub mod element;
 pub mod error;
 pub mod value;
+mod script;
 
 #[derive(Debug)]
 pub struct RWLInstance {
     pub ast: AstNode,
-    pub root: NodeWrapper
+    pub root: NodeWrapper,
+    pub scripts: Vec<RWLScript>
 }
 
 impl RWLInstance {
@@ -23,6 +28,7 @@ impl RWLInstance {
         RWLInstance {
             ast: AstNode::Empty,
             root: NodeWrapper::new(Node::Document { children: Vec::new() }),
+            scripts: Vec::new()
         }
     }
     
@@ -44,33 +50,46 @@ impl RWLInstance {
         }
     }
     
-    pub fn instance(&mut self) {
-        self.root = Self::instance_node(&self.ast);
+    pub fn instance(&mut self) -> Result<(), Error> {
+        self.root = self.instance_node(&self.ast.clone())?;
+        
+        Ok(())
     }
-    fn instance_nodes(nodes: &[AstNode]) -> Vec<NodeWrapper> {
+    fn instance_nodes(&mut self, nodes: &[AstNode]) -> Result<Vec<NodeWrapper>, Error> {
         nodes
             .iter()
-            .map(RWLInstance::instance_node)
-            .collect()
+            .map(|node| self.instance_node(node))
+            .collect::<Result<Vec<_>, _>>()
     }
-    fn instance_node(node: &AstNode) -> NodeWrapper {
-        match node {
+    fn instance_node(&mut self, node: &AstNode) -> Result<NodeWrapper, Error> {
+        Ok(match node {
             AstNode::Empty => NodeWrapper::new(
                 Node::new_empty()
             ),
             
             AstNode::Document(children) => NodeWrapper::new(
                 Node::new_document(
-                    Self::instance_nodes(&children.clone())
+                    self.instance_nodes(&children.clone())?
                 )
             ),
             AstNode::Block(block_type, header, children) => NodeWrapper::new(
                 Node::new_block(
                     block_type.clone(),
-                    Self::instance_nodes(&children.clone()),
+                    self.instance_nodes(&children.clone())?,
                     Self::instance_header(header)
                 )
             ),
+            
+            AstNode::Script(content, header) => {
+                self.instance_script(content.clone())?;
+                
+                NodeWrapper::new(
+                    Node::new_script(
+                        content.clone(),
+                        Self::instance_header(header)
+                    )
+                )
+            },
             
             AstNode::Element(value, header) => NodeWrapper::new(
                 Node::new_element(
@@ -78,7 +97,25 @@ impl RWLInstance {
                     Self::instance_header(header)
                 )
             ),
+        })
+    }
+    fn instance_script(&mut self, content: String) -> Result<(), Error> {
+        let mut module = RTRModule::new();
+        
+        let out =module.parse(&content);
+        if let Err(err) = out {
+            return Err(Error::RTR(err));
         }
+        
+        let script = RWLScript {
+            module
+        };
+        
+        self.scripts.push(script);
+        
+        self.scripts.last_mut().unwrap().init();
+        
+        Ok(())
     }
     fn instance_header(header: &AstHeader) -> Header {
         let mut pairs: HashMap<String, Value> = HashMap::new();

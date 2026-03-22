@@ -223,6 +223,11 @@ pub enum Node {
         render_data: Option<(Area, Option<Color>, Option<Rounding>)>
     },
     
+    Script {
+        content: String,
+        header: Header
+    },
+    
     Element {
         value: Value,
         header: Header,
@@ -286,6 +291,7 @@ impl Node {
             children
         }
     }
+    
     pub fn new_block(
         block_type: BlockType,
         children: Children,
@@ -299,6 +305,17 @@ impl Node {
             render_data: None
         }
     }
+    
+    pub fn new_script(
+        content: String,
+        header: Header
+    ) -> Node {
+        Node::Script {
+            content,
+            header
+        }
+    }
+    
     pub fn new_element(
         value: Value,
         header: Header
@@ -327,9 +344,13 @@ impl Node {
                 block_type: BlockType::Frame,
                 children,
                 
-                render_data: Some((area, ..)),
+                render_data: Some((area, color, rounding)),
                 ..
             } => {
+                if let Some(color) = color {
+                    handle.draw_filled_rectangle(area, &rounding.clone().unwrap_or(Rounding::default()), *color);
+                }
+                
                 if DEBUG {
                     handle.draw_rectangle(area, Color { r: 0, g: 255, b: 0, a: 255});
                 }
@@ -427,6 +448,8 @@ impl Node {
                 *render_data = Some(update_block(&update_ctx, &area, header)?);
             }
             
+            Node::Script { .. } => (),
+            
             Node::Element {
                 value,
                 header,
@@ -447,10 +470,13 @@ impl Node {
     
     pub fn get_header(&self) -> Option<&Header> {
         match self {
-            Node::Empty | Node::Document { .. } =>
+            Node::Empty
+            | Node::Document { .. } =>
                 None,
             
-            Node::Block { header, .. } | Node::Element { header, .. } =>
+            Node::Block { header, .. }
+            | Node::Element { header, .. }
+            | Node::Script { header, .. } =>
                 Some(header),
         }
     }

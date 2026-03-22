@@ -8,6 +8,8 @@ pub enum AstNode {
     Document(Vec<AstNode>),
     Block(BlockType, AstHeader, Vec<AstNode>),
     
+    Script(String, AstHeader),
+    
     Element(AstValue, AstHeader)
 }
 
@@ -16,7 +18,6 @@ pub enum BlockType {
     Root,
     Frame,
     Section,
-    Script,
     Button,
     
     Unknown(String)

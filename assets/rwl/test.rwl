@@ -1,4 +1,8 @@
 root [padding=10] {
-  "hi" [anchor="l"],
-  "i have a margin" [margin=10]
+    "hi" [id="goob"],
+    script {
+        event(onload) {
+            log(document);
+        }
+    }
 }
