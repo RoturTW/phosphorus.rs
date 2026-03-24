@@ -186,11 +186,10 @@ impl Parser {
                 depth -= 1;
             }
             
-            if self.peek() == TokenType::CloseCurly {
-                if depth == 0 {
+            if self.peek() == TokenType::CloseCurly
+                && depth == 0 {
                     break;
                 }
-            }
             
             text = format!("{text}{}", self.consume());
         }

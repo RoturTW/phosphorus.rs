@@ -6,6 +6,7 @@ use crate::rtr::error::Error as RTRError;
 #[derive(Debug)]
 pub enum Error {
     Placeholder,
+    #[allow(clippy::upper_case_acronyms)]
     RTR(RTRError),
     
     // ast
@@ -46,7 +47,7 @@ impl Display for Error {
             Error::Placeholder =>
                 write!(f, "placeholder err :P"),
             Error::RTR(rtr) =>
-                write!(f, "{}", rtr),
+                write!(f, "{rtr}"),
             
             // ast
             Error::UnexpectedToken { token, .. } =>

@@ -1,16 +1,103 @@
-use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
-use crate::{print_raw, print_warn, Log, LogKind, print_log, print_error};
-use crate::rtr::ast::node::Parameter;
+use std::fmt::{Debug, Display, Formatter};
 use crate::rtr::error::Error;
 use crate::rtr::{IndexKey};
-use crate::rtr::log::{RTRLog, RTRLogKind};
-use crate::rtr::runtime::instruction::VmInstruction;
+use crate::rtr::log::{RTRLog};
 use crate::rtr::runtime::memory::{MemPointer, Memory};
-use crate::shared::color::Color;
-use crate::shared::logging::LogSource;
-use crate::shared::utils::{chr, ord};
+use crate::rtr::runtime::values::arr_value::RTRArr;
+use crate::rtr::runtime::values::bool_value::RTRBool;
+use crate::rtr::runtime::values::color_value::RTRColor;
+use crate::rtr::runtime::values::function_value::RTRFunction;
+use crate::rtr::runtime::values::null_value::RTRNull;
+use crate::rtr::runtime::values::num_value::RTRNum;
+use crate::rtr::runtime::values::obj_value::RTRObj;
+use crate::rtr::runtime::values::percentage_value::RTRPercentage;
+use crate::rtr::runtime::values::str_value::RTRStr;
+use crate::rtr::runtime::values::type_value::RTRType;
 
+pub trait RTRValue: Debug {
+    fn clone_box(&self) -> Box<dyn RTRValue>;
+    // memory management
+    fn free(&self, memory: &mut Memory) {}
+    fn dupe(&self, memory: &mut Memory) -> Box<dyn RTRValue>;
+    //fn as_any(&self) -> &dyn std::any::Any;
+    //fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
+    
+    // general methods
+    fn get_type(&self) -> TypeValue;
+    fn call(&self, logs: &mut Vec<RTRLog>, memory: &mut Memory, args: &[MemPointer]) -> Result<MemPointer, Error> {
+        Err(Error::CannotCall {
+            func: self.stringify(memory)
+        })
+    }
+    fn length(&self, memory: &Memory) -> usize { 0 }
+    
+    // conversion methods
+    fn stringify(&self, memory: &Memory) -> String { format!("<{}>", self.get_type()) }
+    fn stringify_format(&self, memory: &Memory) -> String { self.stringify(memory) }
+    fn boolify(&self) -> bool { true }
+    fn numbify(&self) -> f32 { f32::NAN }
+    fn arrify(&self, memory: &mut Memory) -> Vec<MemPointer> { Vec::new() }
+    
+    // property stuff
+    fn get_item(&self, memory: &mut Memory, key: &dyn RTRValue) -> MemPointer { memory.alloc(Box::new(RTRNull)) }
+    fn set_item(&mut self, key: IndexKey, value: MemPointer) -> Option<MemPointer> { None }
+    
+    // object stuff
+    fn keys(&self, memory: &mut Memory) -> Vec<MemPointer> { Vec::new() }
+    fn values(&self, memory: &mut Memory) -> Vec<MemPointer> { Vec::new() }
+    
+    // comparisons
+    fn has(&self, memory: &mut Memory, key: &dyn RTRValue) -> bool { false }
+    fn equal(&self, other: &dyn RTRValue) -> bool { self.get_type() == other.get_type() }
+    fn is_null(&self) -> bool { false }
+    
+    // to methods (e.g. RTRStr.to_str() == Some("data"))
+    fn to_type(&self) -> Option<RTRType> { None }
+    fn to_null(&self) -> Option<RTRNull> { None }
+    fn to_str(&self) -> Option<RTRStr> { None }
+    fn to_num(&self) -> Option<RTRNum> { None }
+    fn to_percentage(&self) -> Option<RTRPercentage> { None }
+    fn to_bool(&self) -> Option<RTRBool> { None }
+    fn to_function(&self) -> Option<RTRFunction> { None }
+    fn to_arr(&self) -> Option<RTRArr> { None }
+    fn to_obj(&self) -> Option<RTRObj> { None }
+    fn to_color(&self) -> Option<RTRColor> { None }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TypeValue {
+    Type,
+    
+    Null,
+    Str,
+    Num,
+    Percentage,
+    Bool,
+    Function,
+    Arr,
+    Obj,
+    Color
+}
+
+impl Display for TypeValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TypeValue::Type => write!(f, "type"),
+            
+            TypeValue::Null => write!(f, "null"),
+            TypeValue::Str => write!(f, "str"),
+            TypeValue::Num => write!(f, "num"),
+            TypeValue::Percentage => write!(f, "percentage"),
+            TypeValue::Bool => write!(f, "bool"),
+            TypeValue::Function => write!(f, "function"),
+            TypeValue::Arr => write!(f, "arr"),
+            TypeValue::Obj => write!(f, "obj"),
+            TypeValue::Color => write!(f, "color"),
+        }
+    }
+}
+
+/*
 #[derive(Debug, Clone)]
 pub enum Value {
     Type { data: TypeValue },
@@ -400,39 +487,6 @@ impl From<Value> for bool {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum TypeValue {
-    Type,
-    
-    Null,
-    Str,
-    Num,
-    Percentage,
-    Bool,
-    Function,
-    Arr,
-    Obj,
-    Color
-}
-
-impl Display for TypeValue {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TypeValue::Type => write!(f, "type"),
-            
-            TypeValue::Null => write!(f, "null"),
-            TypeValue::Str => write!(f, "str"),
-            TypeValue::Num => write!(f, "num"),
-            TypeValue::Percentage => write!(f, "percentage"),
-            TypeValue::Bool => write!(f, "bool"),
-            TypeValue::Function => write!(f, "function"),
-            TypeValue::Arr => write!(f, "arr"),
-            TypeValue::Obj => write!(f, "obj"),
-            TypeValue::Color => write!(f, "color"),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub enum Function {
     Builtin(BuiltinFunction),
@@ -443,359 +497,5 @@ pub enum Function {
     },
 }
 
-#[derive(Debug, Clone)]
-pub enum BuiltinFunction {
-    Log,
-    Error,
-    Return,
-    Typeof,
-    Length,
-    
-    // mathematical
-    Min,
-    Max,
-    
-    Abs,
-    Sqrt,
-    
-    Round,
-    Floor,
-    Ceil,
-    
-    // string
-    Join,
-    Split,
-    
-    Chr,
-    Ord,
-    
-    ToUpper,
-    ToLower,
-    ToTitle,
-    
-    // array
-    Item,
-    Range,
-    
-    // object
-    Keys,
-    Values,
-    Has,
-    Obj,
-    
-    // logical
-    All,
-    Any,
-    Not
-}
 
-impl BuiltinFunction {
-    #[allow(clippy::too_many_lines)]
-    #[allow(clippy::unnecessary_wraps)]
-    pub fn call(&self, logs: &mut Vec<RTRLog>, memory: &mut Memory, args: &[MemPointer]) -> Result<MemPointer, Error> {
-        match self {
-            BuiltinFunction::Log => {
-                let text = args
-                    .iter()
-                    .map(|ptr| memory.get(*ptr))
-                    .map(|v| v.stringify(memory))
-                    .collect::<Vec<_>>()
-                    .join(" ");
-                
-                print_log!(LogSource::Rtr, "{text}");
-                
-                logs.push(RTRLog {
-                    kind: RTRLogKind::Log,
-                    text
-                });
-            },
-            BuiltinFunction::Error => {
-                // TODO: have this error and then return and call the event
-                let text = args
-                    .iter()
-                    .map(|ptr| memory.get(*ptr))
-                    .map(|v| v.stringify(memory))
-                    .collect::<Vec<_>>()
-                    .join(" ");
-                
-                print_error!(LogSource::Rtr, "{text}");
-                
-                logs.push(RTRLog {
-                    kind: RTRLogKind::Error,
-                    text
-                });
-            },
-            BuiltinFunction::Return => {
-                // return is handled in call instruction
-            }
-            BuiltinFunction::Typeof => {
-                return Ok(
-                    memory.alloc(Value::Type {
-                        data: memory.get(args[0]).get_type()
-                    })
-                )
-            }
-            BuiltinFunction::Length => {
-                // TODO: check amount of args
-                return Ok(
-                    memory.alloc(Value::Num {
-                        data: memory.get(args[0]).length() as f32
-                    })
-                );
-            }
-            
-            // mathematical
-            BuiltinFunction::Min => {
-                // TODO: check amount of args
-                let mut iter = args.iter();
-                let mut val = memory.get(*iter.next().unwrap()).numbify();
-                
-                for arg in iter {
-                    let arg = memory.get(*arg).numbify();
-                    val = val.min(arg);
-                }
-                
-                return Ok(
-                    memory.alloc(Value::Num {
-                        data: val
-                    })
-                );
-            }
-            BuiltinFunction::Max => {
-                // TODO: check amount of args
-                let mut iter = args.iter();
-                let mut val = memory.get(*iter.next().unwrap()).numbify();
-                
-                for arg in iter {
-                    let arg = memory.get(*arg).numbify();
-                    val = val.max(arg);
-                }
-                
-                return Ok(
-                    memory.alloc(Value::Num {
-                        data: val
-                    })
-                );
-            }
-            
-            BuiltinFunction::Abs => {
-                // TODO: check amount of args
-                return Ok(
-                    memory.alloc(Value::Num {
-                        data: memory.get(args[0]).numbify().abs()
-                    })
-                );
-            }
-            BuiltinFunction::Sqrt => {
-                // TODO: check amount of args
-                return Ok(
-                    memory.alloc(Value::Num {
-                        data: memory.get(args[0]).numbify().sqrt()
-                    })
-                );
-            }
-            
-            // Round
-            BuiltinFunction::Round => {
-                // TODO: check amount of args
-                return Ok(
-                    memory.alloc(Value::Num {
-                        data: memory.get(args[0]).numbify().round()
-                    })
-                );
-            }
-            BuiltinFunction::Floor => {
-                // TODO: check amount of args
-                return Ok(
-                    memory.alloc(Value::Num {
-                        data: memory.get(args[0]).numbify().floor()
-                    })
-                );
-            }
-            BuiltinFunction::Ceil => {
-                // TODO: check amount of args
-                return Ok(
-                    memory.alloc(Value::Num {
-                        data: memory.get(args[0]).numbify().ceil()
-                    })
-                );
-            }
-            
-            // string
-            BuiltinFunction::Join => {
-                // TODO: check amount of args
-                return Ok(
-                    memory.alloc(Value::Str {
-                        data: args
-                            .iter()
-                            .map(|ptr| memory.get(*ptr).stringify(memory))
-                            .reduce(|a, b| {
-                                format!("{a}{b}")
-                            }).unwrap_or(String::new())
-                    })
-                );
-            }
-            BuiltinFunction::Split => {
-                // TODO: check amount of args
-                let str = memory.get(args[0]).stringify(memory);
-                let sep = memory.get(args[1]).stringify(memory);
-                
-                let val = Value::Arr {
-                    items: str.split(sep.as_str())
-                        .map(|s| memory.alloc(
-                            Value::Str { data: s.to_string() }
-                        ))
-                        .collect()
-                };
-                
-                return Ok(
-                    memory.alloc(val)
-                );
-            }
-            BuiltinFunction::Chr => {
-                // TODO: check amount of args
-                let num = memory.get(args[0]).numbify();
-                return Ok(
-                    memory.alloc(
-                        Value::Str {
-                            data: chr(num)
-                        }
-                    )
-                )
-            }
-            BuiltinFunction::Ord => {
-                // TODO: check amount of args
-                let str = memory.get(args[0]).stringify(memory);
-                return Ok(
-                    memory.alloc(
-                        Value::Num {
-                            data: ord(&str)
-                        }
-                    )
-                )
-            }
-            
-            BuiltinFunction::ToUpper => {
-                // TODO: handle incorrect amount of args
-                let str = memory.get(args[0]).stringify(memory);
-                return Ok(
-                    memory.alloc(
-                        Value::Str {
-                            data: str.to_uppercase()
-                        }
-                    )
-                )
-            }
-            BuiltinFunction::ToLower => {
-                // TODO: handle incorrect amount of args
-                let str = memory.get(args[0]).stringify(memory);
-                return Ok(
-                    memory.alloc(
-                        Value::Str {
-                            data: str.to_lowercase()
-                        }
-                    )
-                )
-            }
-            BuiltinFunction::ToTitle => {
-                // TODO: handle incorrect amount of args
-                let str = memory.get(args[0]).stringify(memory);
-                let words: Vec<String> = str.split(' ')
-                    .map(|w| w[0..1].to_uppercase() + &w[1..].to_lowercase())
-                    .collect();
-                return Ok(
-                    memory.alloc(
-                        Value::Str {
-                            data: words.join(" ")
-                        }
-                    )
-                )
-            }
-            
-            // array
-            BuiltinFunction::Item => {
-                // TODO: handle incorrect amount of args
-                let value = memory.get(args[0]).clone();
-                let idx = memory.get(args[1]).clone();
-                return Ok(
-                    value.get_item(memory, &idx)
-                );
-            }
-            BuiltinFunction::Range => {
-                let mut items = Vec::new();
-                
-                // TODO: handle incorrect amount of args
-                let a = memory.get(args[0]).numbify().trunc() as usize;
-                let b = memory.get(args[1]).numbify().trunc() as usize;
-                
-                for i in a..=b {
-                    items.push(memory.alloc(
-                        Value::Num { data: i as f32 }
-                    ));
-                }
-                
-                return Ok(memory.alloc(
-                    Value::Arr { items }
-                ))
-            }
-            
-            // object
-            BuiltinFunction::Keys => {
-                // TODO: handle incorrect amount of args
-                let keys = memory.get(args[0])
-                    .clone()
-                    .keys(memory);
-                return Ok(memory.alloc(Value::Arr {
-                    items: keys
-                }));
-            }
-            BuiltinFunction::Values => {
-                // TODO: handle incorrect amount of args
-                let keys = memory.get(args[0])
-                    .clone()
-                    .values(memory);
-                return Ok(memory.alloc(Value::Arr {
-                    items: keys
-                }));
-            }
-            BuiltinFunction::Has => {
-                // TODO: handle incorrect amount of args
-                let value = memory.get(args[0]).clone();
-                let key = memory.get(args[1]).clone();
-                let data = value.has(memory, &key);
-                return Ok(memory.alloc(Value::Bool {
-                    data
-                }));
-            }
-            BuiltinFunction::Obj => {
-                return Ok(memory.alloc(Value::Obj {
-                    data: HashMap::new()
-                }));
-            }
-            
-            // logical
-            BuiltinFunction::All => {
-                return Ok(memory.alloc(Value::Bool {
-                    data: args
-                        .iter()
-                        .all(|v| memory.get(*v).boolify())
-                }))
-            }
-            BuiltinFunction::Any => {
-                return Ok(memory.alloc(Value::Bool {
-                    data: args
-                        .iter()
-                        .any(|v| memory.get(*v).boolify())
-                }))
-            }
-            BuiltinFunction::Not => {
-                // TODO: handle incorrect amount of args
-                return Ok(memory.alloc(Value::Bool {
-                    data: !memory.get(args[0]).boolify()
-                }))
-            }
-        }
-        
-        Ok(memory.alloc(Value::Null))
-    }
-}
+ */

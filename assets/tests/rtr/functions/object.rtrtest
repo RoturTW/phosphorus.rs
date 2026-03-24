@@ -7,10 +7,11 @@ code (program):
         log(values(my_obj));
         log(has(my_obj, "fr"));
         log(has(my_obj, "silly"));
+        log(item(my_obj, "goob"));
         log(length(my_obj));
         log(obj());
     }
 
 result:
-    ["goob", "fr"] ["bleh", 3] true false 2 {}
-    ["fr", "goob"] [3, "bleh"] true false 2 {}
+    ["goob", "fr"] ["bleh", 3] true false bleh 2 {}
+    ["fr", "goob"] [3, "bleh"] true false bleh 2 {}

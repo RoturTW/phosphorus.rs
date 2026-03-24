@@ -1,4 +1,5 @@
-use crate::rtr::runtime::value::Value;
+use std::fmt::Debug;
+use crate::rtr::runtime::value::{RTRValue};
 
 const MEM_DEBUG: bool = false;
 
@@ -23,17 +24,11 @@ impl Memory {
     }
     pub fn get_open_pointer(&mut self) -> MemPointer {
         let i = self.get_open();
-        
-        MemPointer {
-            id: MemId(i)
-        }
+        MemPointer { id: MemId(i) }
     }
     
-    // operations
-    pub fn alloc(&mut self, val: Value) -> MemPointer {
+    pub fn alloc(&mut self, val: Box<dyn RTRValue>) -> MemPointer {
         let ptr = self.get_open_pointer();
-        
-        debug_log(0, &format!("alloc {} {:?}", ptr.id.0, val));
         self.cells[ptr.id.0] = Some(MemCell {
             val,
             id: MemId(ptr.id.0),
@@ -46,11 +41,9 @@ impl Memory {
             debug_log(0, &format!("free {}, doesnt exist", ptr.id.0));
             return;
         }
-        
         debug_log(0, &format!("free {}", ptr.id.0));
         
         let cell = self.get_cell(ptr);
-        
         debug_log(1, &format!("{:?}", cell.val));
         
         if cell.refs > 0 {
@@ -58,10 +51,8 @@ impl Memory {
             return;
         }
         
-        let val = self.get(ptr).clone();
+        let val = self.cells[ptr.id.0].take().unwrap().val;
         val.free(self);
-        
-        self.cells[ptr.id.0] = None;
     }
     
     pub fn add_ref(&mut self, ptr: MemPointer) {
@@ -69,7 +60,7 @@ impl Memory {
         debug_log(0, &format!("add ref {}", ptr.id.0));
         let cell = self.cells[ptr.id.0].as_mut().unwrap();
         debug_log(1, &format!("now {}", cell.refs + 1));
-        self.cells[ptr.id.0].as_mut().unwrap().refs += 1;
+        cell.refs += 1;
     }
     pub fn rm_ref(&mut self, ptr: MemPointer) {
         assert!(self.has_cell(ptr), "ptr to dead cell");
@@ -81,12 +72,8 @@ impl Memory {
         debug_log(1, &format!("now {}", cell.refs));
     }
     
-    // accessing
     pub fn has_cell(&self, ptr: MemPointer) -> bool {
-        self.cells[ptr.id.0].is_some()
-    }
-    pub fn get_cell_option(&self, ptr: MemPointer) -> Option<&MemCell> {
-        self.cells[ptr.id.0].as_ref()
+        self.cells.get(ptr.id.0).is_some_and(Option::is_some)
     }
     pub fn get_cell(&self, ptr: MemPointer) -> &MemCell {
         assert!(self.has_cell(ptr), "ptr to dead cell");
@@ -96,38 +83,38 @@ impl Memory {
         assert!(self.has_cell(ptr), "ptr to dead cell");
         self.cells[ptr.id.0].as_mut().unwrap()
     }
-    
-    pub fn get_option(&self, ptr: MemPointer) -> Option<&Value> {
-        debug_log(0, &format!("get {}", ptr.id.0));
-        
-        let cell = self.get_cell_option(ptr);
-        
-        if let Some(cell) = cell {
-            Some(&cell.val)
-        } else {
-            None
-        }
+    pub fn get_cell_option(&self, ptr: MemPointer) -> Option<&MemCell> {
+        self.cells.get(ptr.id.0)?.as_ref()
     }
-    pub fn get(&self, ptr: MemPointer) -> &Value {
+    
+    pub fn get(&self, ptr: MemPointer) -> &dyn RTRValue {
         assert!(self.has_cell(ptr), "ptr to dead cell");
         debug_log(0, &format!("get {}", ptr.id.0));
-        
-        let cell = self.get_cell(ptr);
-        
-        &cell.val
+        self.get_cell(ptr).val.as_ref()
     }
-    pub fn get_mut(&mut self, ptr: MemPointer) -> &mut Value {
+    pub fn get_option(&self, ptr: MemPointer) -> Option<&dyn RTRValue> {
+        debug_log(0, &format!("get {}", ptr.id.0));
+        Some(self.get_cell_option(ptr)?.val.as_ref())
+    }
+    pub fn get_mut(&mut self, ptr: MemPointer) -> &mut dyn RTRValue {
         assert!(self.has_cell(ptr), "ptr to dead cell");
         debug_log(0, &format!("get mut {}", ptr.id.0));
-        let cell = self.get_cell_mut(ptr);
-        
-        &mut cell.val
+        self.get_cell_mut(ptr).val.as_mut()
     }
+    
+    /*
+    pub fn get_as<T: RTRValue + 'static>(&self, ptr: MemPointer) -> Option<&T> {
+        self.get(ptr).as_any().downcast_ref::<T>()
+    }
+    pub fn get_as_mut<T: RTRValue + 'static>(&mut self, ptr: MemPointer) -> Option<&mut T> {
+        self.get_mut(ptr).as_any_mut().downcast_mut::<T>()
+    }
+     */
 }
 
 #[derive(Debug)]
 pub struct MemCell {
-    pub val: Value,
+    pub val: Box<dyn RTRValue>,
     #[allow(unused)]
     pub id: MemId,
     pub refs: usize
@@ -145,4 +132,4 @@ impl MemPointer {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct MemId (pub usize);
+pub struct MemId(pub usize);

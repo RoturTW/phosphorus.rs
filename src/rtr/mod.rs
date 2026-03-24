@@ -8,10 +8,20 @@ use crate::rtr::error::Error;
 use crate::rtr::log::RTRLog;
 use crate::rtr::runtime::compiler;
 use crate::rtr::runtime::compiler::CompileContext;
+use crate::rtr::runtime::function::BuiltinFunction;
 use crate::rtr::runtime::instruction::VmInstruction;
 use crate::rtr::runtime::memory::{MemPointer, Memory};
 use crate::rtr::runtime::scope::Scope;
-use crate::rtr::runtime::value::{BuiltinFunction, Function, Value};
+use crate::rtr::runtime::value::RTRValue;
+use crate::rtr::runtime::values::arr_value::RTRArr;
+use crate::rtr::runtime::values::bool_value::RTRBool;
+use crate::rtr::runtime::values::color_value::RTRColor;
+use crate::rtr::runtime::values::function_value::{Function, RTRFunction};
+use crate::rtr::runtime::values::null_value::RTRNull;
+use crate::rtr::runtime::values::num_value::RTRNum;
+use crate::rtr::runtime::values::obj_value::RTRObj;
+use crate::rtr::runtime::values::percentage_value::RTRPercentage;
+use crate::rtr::runtime::values::str_value::RTRStr;
 use crate::shared::logging::LogSource;
 
 pub mod ast;
@@ -69,7 +79,7 @@ impl RTRModule {
         inject(&mut self.memory, &mut self.scope);
     }
     
-    fn set_alloc(&mut self, name: &str, value: Value) {
+    fn set_alloc(&mut self, name: &str, value: Box<dyn RTRValue>) {
         let ptr = self.memory.alloc(value);
         self.scope.set_var(
             &mut self.memory,
@@ -78,108 +88,108 @@ impl RTRModule {
         );
     }
     pub fn new_scope(&mut self) {
-        self.set_alloc("true", Value::Bool { data: true });
-        self.set_alloc("false", Value::Bool { data: false });
-        self.set_alloc("null", Value::Null);
+        self.set_alloc("true", Box::new(RTRBool { data: true }));
+        self.set_alloc("false", Box::new(RTRBool { data: false }));
+        self.set_alloc("null", Box::new(RTRNull));
         
-        self.set_alloc("log", Value::Function(
-            Function::Builtin(BuiltinFunction::Log)
-        ));
-        self.set_alloc("error", Value::Function(
-            Function::Builtin(BuiltinFunction::Error)
-        ));
-        self.set_alloc("return", Value::Function(
-            Function::Builtin(BuiltinFunction::Return)
-        ));
-        self.set_alloc("typeof", Value::Function(
-            Function::Builtin(BuiltinFunction::Typeof)
-        ));
-        self.set_alloc("length", Value::Function(
-            Function::Builtin(BuiltinFunction::Length)
-        ));
+        self.set_alloc("log", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Log)
+        }));
+        self.set_alloc("error", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Error)
+        }));
+        self.set_alloc("return", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Return)
+        }));
+        self.set_alloc("typeof", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Typeof)
+        }));
+        self.set_alloc("length", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Length)
+        }));
         
         // mathematical
-        self.set_alloc("min", Value::Function(
-            Function::Builtin(BuiltinFunction::Min)
-        ));
-        self.set_alloc("max", Value::Function(
-            Function::Builtin(BuiltinFunction::Max)
-        ));
+        self.set_alloc("min", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Min)
+        }));
+        self.set_alloc("max", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Max)
+        }));
         
-        self.set_alloc("abs", Value::Function(
-            Function::Builtin(BuiltinFunction::Abs)
-        ));
-        self.set_alloc("sqrt", Value::Function(
-            Function::Builtin(BuiltinFunction::Sqrt)
-        ));
+        self.set_alloc("abs", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Abs)
+        }));
+        self.set_alloc("sqrt", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Sqrt)
+        }));
         
-        self.set_alloc("round", Value::Function(
-            Function::Builtin(BuiltinFunction::Round)
-        ));
-        self.set_alloc("floor", Value::Function(
-            Function::Builtin(BuiltinFunction::Floor)
-        ));
-        self.set_alloc("ceil", Value::Function(
-            Function::Builtin(BuiltinFunction::Ceil)
-        ));
+        self.set_alloc("round", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Round)
+        }));
+        self.set_alloc("floor", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Floor)
+        }));
+        self.set_alloc("ceil", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Ceil)
+        }));
         
         // string
-        self.set_alloc("join", Value::Function(
-            Function::Builtin(BuiltinFunction::Join)
-        ));
-        self.set_alloc("split", Value::Function(
-            Function::Builtin(BuiltinFunction::Split)
-        ));
+        self.set_alloc("join", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Join)
+        }));
+        self.set_alloc("split", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Split)
+        }));
         
-        self.set_alloc("chr", Value::Function(
-            Function::Builtin(BuiltinFunction::Chr)
-        ));
-        self.set_alloc("ord", Value::Function(
-            Function::Builtin(BuiltinFunction::Ord)
-        ));
+        self.set_alloc("chr", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Chr)
+        }));
+        self.set_alloc("ord", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Ord)
+        }));
         
-        self.set_alloc("toUpper", Value::Function(
-            Function::Builtin(BuiltinFunction::ToUpper)
-        ));
-        self.set_alloc("toLower", Value::Function(
-            Function::Builtin(BuiltinFunction::ToLower)
-        ));
-        self.set_alloc("toTitle", Value::Function(
-            Function::Builtin(BuiltinFunction::ToTitle)
-        ));
+        self.set_alloc("toUpper", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::ToUpper)
+        }));
+        self.set_alloc("toLower", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::ToLower)
+        }));
+        self.set_alloc("toTitle", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::ToTitle)
+        }));
         
         // array
-        self.set_alloc("item", Value::Function(
-            Function::Builtin(BuiltinFunction::Item)
-        ));
-        self.set_alloc("range", Value::Function(
-            Function::Builtin(BuiltinFunction::Range)
-        ));
+        self.set_alloc("item", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Item)
+        }));
+        self.set_alloc("range", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Range)
+        }));
         
         // object
-        self.set_alloc("keys", Value::Function(
-            Function::Builtin(BuiltinFunction::Keys)
-        ));
-        self.set_alloc("values", Value::Function(
-            Function::Builtin(BuiltinFunction::Values)
-        ));
-        self.set_alloc("has", Value::Function(
-            Function::Builtin(BuiltinFunction::Has)
-        ));
-        self.set_alloc("obj", Value::Function(
-            Function::Builtin(BuiltinFunction::Obj)
-        ));
+        self.set_alloc("keys", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Keys)
+        }));
+        self.set_alloc("values", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Values)
+        }));
+        self.set_alloc("has", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Has)
+        }));
+        self.set_alloc("obj", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Obj)
+        }));
         
         // logical
-        self.set_alloc("all", Value::Function(
-            Function::Builtin(BuiltinFunction::All)
-        ));
-        self.set_alloc("any", Value::Function(
-            Function::Builtin(BuiltinFunction::Any)
-        ));
-        self.set_alloc("not", Value::Function(
-            Function::Builtin(BuiltinFunction::Not)
-        ));
+        self.set_alloc("all", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::All)
+        }));
+        self.set_alloc("any", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Any)
+        }));
+        self.set_alloc("not", Box::new(RTRFunction {
+            data: Function::Builtin(BuiltinFunction::Not)
+        }));
     }
     
     pub fn parse(&mut self, src: &str) -> Result<(), Error> {
@@ -233,36 +243,31 @@ impl RTRModule {
         events
     }
     
-    pub fn run_event_target(&mut self, target: &EventTarget) -> Result<Option<Value>, Error> {
+    pub fn run_event_target(&mut self, target: &EventTarget) -> Result<(), Error> {
         // TODO: cache compiled segments :P
         let events = self.get_eligible(target);
         
-        let mut out = None;
-        
         for event in events {
-            let ev_out = self.run_event(event)?;
-            if let Some(data) = ev_out {
-                out = Some(data);
-            }
+            self.run_event(event)?;
         }
         
-        Ok(out)
+        Ok(())
     }
-    fn run_event(&mut self, event: Event) -> Result<Option<Value>, Error> {
+    fn run_event(&mut self, event: Event) -> Result<(), Error> {
         let instructions = self.compile_event(event.body)?;
         //println!("{instructions:?}");
         let val = self.run_instructions(&instructions)?;
         
-        let val = val.map(|ptr| self.memory.get(ptr).clone());
+        let val = val.map(|ptr| self.memory.get(ptr));
         
-        Ok(val)
+        Ok(())
     }
     
-    fn pop_stack(&mut self) -> (&Value, MemPointer) {
+    fn pop_stack(&mut self) -> (&dyn RTRValue, MemPointer) {
         let ptr = self.pop_stack_raw().unwrap();
         (self.memory.get(ptr), ptr)
     }
-    fn pop_stack_mut(&mut self) -> (&mut Value, MemPointer) {
+    fn pop_stack_mut(&mut self) -> (&mut dyn RTRValue, MemPointer) {
         let ptr = self.pop_stack_raw().unwrap();
         (self.memory.get_mut(ptr), ptr)
     }
@@ -273,7 +278,7 @@ impl RTRModule {
         self.stack.pop()
     }
     
-    fn push_stack_alloc(&mut self, val: Value) {
+    fn push_stack_alloc(&mut self, val: Box<dyn RTRValue>) {
         let ptr = self.memory.alloc(val);
         self.push_stack_ptr(ptr);
     }
@@ -347,17 +352,17 @@ impl RTRModule {
                     self.memory.add_ref(func_ptr);
                     
                     let out_ptr = {
-                        let func = self.memory.get_mut(func_ptr).clone();
-                        match &func {
-                            Value::Function(Function::Vm { body, params }) => {
+                        let func = self.memory.get_mut(func_ptr).clone_box();
+                        match func.to_function() {
+                            Some(RTRFunction { data: Function::Vm { body, params } }) => {
                                 self.scope.new_layer();
                                 for (i, param) in params.iter().enumerate() {
-                                    let arg = *args.get(i).unwrap_or(&self.memory.alloc(Value::Null));
+                                    let arg = *args.get(i).unwrap_or(&self.memory.alloc(Box::new(RTRNull)));
                                     self.scope.decl_var(&mut self.memory, param.name.clone(), arg);
                                 }
-                                self.run_instructions(body)?.unwrap_or(self.memory.alloc(Value::Null))
+                                self.run_instructions(&body)?.unwrap_or(self.memory.alloc(Box::new(RTRNull)))
                             }
-                            Value::Function(Function::Builtin(BuiltinFunction::Return)) => {
+                            Some(RTRFunction { data: Function::Builtin(BuiltinFunction::Return) }) => {
                                 let ptr = args.first().copied();
                                 
                                 // add ref to stop from being freed
@@ -403,29 +408,29 @@ impl RTRModule {
                 VmInstruction::Unary(op) => {
                     let (right, right_ptr) = self.pop_stack();
                     
-                    let right = right.clone();
+                    let right = right.clone_box();
                     
                     self.push_stack_alloc(match op {
                         UnaryOp::Minus =>
-                            Value::Num { data: -right.numbify() },
+                            Box::new(RTRNum { data: -right.numbify() }),
                         UnaryOp::Number =>
-                            Value::Num { data: right.numbify() },
+                            Box::new(RTRNum { data: right.numbify() }),
                         
                         UnaryOp::Invert =>
-                            Value::Bool { data: !right.boolify() },
+                            Box::new(RTRBool { data: !right.boolify() }),
                         UnaryOp::Boolify =>
-                            Value::Bool { data: right.boolify() }
+                            Box::new(RTRBool { data: right.boolify() })
                     });
                     
                     self.memory.free(right_ptr);
                 }
                 VmInstruction::Binary(op) => {
                     let (right, right_ptr) = self.pop_stack();
-                    let right = right.clone();
+                    let right = right.clone_box();
                     let (left, left_ptr) = self.pop_stack();
-                    let left = left.clone();
+                    let left = left.clone_box();
                     
-                    let val = self.run_binary_op(&left, &right, op);
+                    let val = self.run_binary_op(&*left, &*right, op);
                     self.push_stack_alloc(val);
                     
                     self.memory.free(right_ptr);
@@ -434,11 +439,11 @@ impl RTRModule {
                 VmInstruction::Prop
                 | VmInstruction::PropNoFree => {
                     let (key, key_ptr) = self.pop_stack();
-                    let key = key.clone();
+                    let key = key.clone_box();
                     let (obj, obj_ptr) = self.pop_stack();
-                    let obj = obj.clone();
+                    let obj = obj.clone_box();
                     
-                    let ptr = obj.get_item(&mut self.memory, &key);
+                    let ptr = obj.get_item(&mut self.memory, &*key);
                     self.push_stack_ptr(ptr);
                     
                     if let VmInstruction::Prop = inst {
@@ -449,11 +454,12 @@ impl RTRModule {
                 VmInstruction::Len
                 | VmInstruction::LenNoFree => {
                     let (obj, obj_ptr) = self.pop_stack();
+                    let obj = obj.clone_box();
                     
-                    let val = Value::Num {
-                        data: obj.length() as f32
+                    let val = RTRNum {
+                        data: obj.length(&self.memory) as f32
                     };
-                    self.push_stack_alloc(val);
+                    self.push_stack_alloc(Box::new(val));
                     
                     if let VmInstruction::Len = inst {
                         self.memory.free(obj_ptr);
@@ -461,41 +467,43 @@ impl RTRModule {
                 }
                 VmInstruction::Arrify => {
                     let (obj, obj_ptr) = self.pop_stack();
-                    let obj = obj.clone();
+                    let obj = obj.clone_box();
                     
                     let items = obj.arrify(&mut self.memory);
                     for item in &items {
                         self.memory.add_ref(*item);
                     }
                     
-                    let val = Value::Arr {
+                    let val = RTRArr {
                         items
                     };
-                    self.push_stack_alloc(val);
+                    self.push_stack_alloc(Box::new(val));
                     
                     self.memory.free(obj_ptr);
                 }
                 
                 // values
                 VmInstruction::Null => {
-                    self.push_stack_alloc(Value::Null);
+                    self.push_stack_alloc(Box::new(RTRNull));
                 }
                 VmInstruction::Str(str) => {
-                    self.push_stack_alloc(Value::Str { data: str.clone() });
+                    self.push_stack_alloc(Box::new(RTRStr { data: str.clone() }));
                 }
                 VmInstruction::Num(num) => {
-                    self.push_stack_alloc(Value::Num { data: *num });
+                    self.push_stack_alloc(Box::new(RTRNum { data: *num }));
                 }
                 VmInstruction::Percentage(num) => {
-                    self.push_stack_alloc(Value::Percentage { data: *num });
+                    self.push_stack_alloc(Box::new(RTRPercentage { data: *num }));
                 }
                 VmInstruction::Bool(bool) => {
-                    self.push_stack_alloc(Value::Bool { data: *bool });
+                    self.push_stack_alloc(Box::new(RTRBool { data: *bool }));
                 }
                 VmInstruction::Func { body, args } => {
-                    self.push_stack_alloc(Value::Function(Function::Vm {
-                        body: body.clone(),
-                        params: args.clone()
+                    self.push_stack_alloc(Box::new(RTRFunction {
+                        data: Function::Vm {
+                            body: body.clone(),
+                            params: args.clone()
+                        }
                     }));
                 },
                 VmInstruction::Arr { len } => {
@@ -509,9 +517,9 @@ impl RTRModule {
                     
                     items.reverse();
                     
-                    self.push_stack_alloc(Value::Arr {
+                    self.push_stack_alloc(Box::new(RTRArr {
                         items
-                    });
+                    }));
                 }
                 VmInstruction::Obj { keys } => {
                     let mut values = Vec::new();
@@ -532,14 +540,14 @@ impl RTRModule {
                     }
                     
                     
-                    self.push_stack_alloc(Value::Obj {
+                    self.push_stack_alloc(Box::new(RTRObj {
                         data: map
-                    });
+                    }));
                 }
                 VmInstruction::Color(color) => {
-                    self.push_stack_alloc(Value::Color {
+                    self.push_stack_alloc(Box::new(RTRColor {
                         data: *color
-                    });
+                    }));
                 }
                 
                 // scope
@@ -548,7 +556,7 @@ impl RTRModule {
                     if let Some(ptr) = var {
                         self.push_stack_ptr(ptr);
                     } else {
-                        self.push_stack_alloc(Value::Null);
+                        self.push_stack_alloc(Box::new(RTRNull));
                     }
                 }
                 VmInstruction::Decl(name) => {
@@ -567,31 +575,31 @@ impl RTRModule {
                 
                 // assignments
                 VmInstruction::AsiVar(name, op) => {
-                    let ptr = self.scope.get_var(name).unwrap_or(self.memory.alloc(Value::Null));
+                    let ptr = self.scope.get_var(name).unwrap_or(self.memory.alloc(Box::new(RTRNull)));
                     let (val, val_ptr) = self.pop_stack();
-                    let val = val.clone();
+                    let val = val.clone_box();
                     if let AssignmentOp::Default = op {
                         let new_val_ptr = self.memory.alloc(val);
                         self.scope.set_var(&mut self.memory, name.clone(), new_val_ptr);
                     } else {
-                        let original = self.memory.get(ptr).clone();
-                        self.memory.get_cell_mut(ptr).val = self.run_binary_op(&original, &val, &op.clone().into());
+                        let original = self.memory.get(ptr).clone_box();
+                        self.memory.get_cell_mut(ptr).val = self.run_binary_op(&*original, &*val, &op.clone().into());
                     }
                     self.push_stack_ptr(val_ptr);
                 }
                 VmInstruction::AsiProp(op) => {
                     let (key, key_ptr) = self.pop_stack();
-                    let key = key.clone();
+                    let key = key.clone_box();
                     
                     let (obj, obj_ptr) = self.pop_stack();
                     
-                    let index_key = match &obj {
-                        Value::Obj { ..} => IndexKey::Str(key.stringify(&self.memory)),
+                    let index_key = match obj.to_obj() {
+                        Some(RTRObj { .. }) => IndexKey::Str(key.stringify(&self.memory)),
                         _ => IndexKey::Int(key.numbify() as usize),
                     };
                     
                     let (val, val_ptr) = self.pop_stack();
-                    let val = val.clone();
+                    let val = val.clone_box();
                     self.memory.add_ref(val_ptr);
                     
                     //let _obj = self.memory.get_mut(obj_ptr);
@@ -607,12 +615,12 @@ impl RTRModule {
                         }
                     } else {
                         let ptr = {
-                            let obj = self.memory.get(obj_ptr).clone();
-                            obj.get_item(&mut self.memory, &key)
+                            let obj = self.memory.get(obj_ptr).clone_box();
+                            obj.get_item(&mut self.memory, &*key)
                         };
                         
-                        let original = self.memory.get(ptr).clone();
-                        let val = self.run_binary_op(&original, &val, &op.clone().into());
+                        let original = self.memory.get(ptr).clone_box();
+                        let val = self.run_binary_op(&*original, &*val, &op.clone().into());
                         let val_ptr = self.memory.alloc(val);
                         
                         let old_ptr = {
@@ -637,7 +645,7 @@ impl RTRModule {
                 }
                 VmInstruction::Dupe(idx) => {
                     let val = self.memory.get(self.stack[self.stack.len() - 1 - idx]);
-                    let val = val.clone().dupe(&mut self.memory);
+                    let val = val.clone_box().dupe(&mut self.memory);
                     self.push_stack_alloc(val);
                 }
                 VmInstruction::DupePtr(idx) => {
@@ -655,13 +663,13 @@ impl RTRModule {
         
         Ok(None)
     }
-    fn run_binary_op(&mut self, left: &Value, right: &Value, op: &BinaryOp) -> Value {
-        fn get_num(left: &Value, right: &Value) -> Option<(f32, f32)> {
+    fn run_binary_op(&mut self, left: &dyn RTRValue, right: &dyn RTRValue, op: &BinaryOp) -> Box<dyn RTRValue> {
+        fn get_num(left: &dyn RTRValue, right: &dyn RTRValue) -> Option<(f32, f32)> {
             if let (
-                Value::Num { data: left },
-                Value::Num { data: right }
-            ) = (&left, &right) {
-                Some((*left, *right))
+                Some(RTRNum { data: left }),
+                Some(RTRNum { data: right })
+            ) = (left.to_num(), right.to_num()) {
+                Some((left, right))
             } else {
                 None
             }
@@ -670,61 +678,60 @@ impl RTRModule {
         match op {
             BinaryOp::Add =>
                 if let Some((left, right)) = get_num(left, right) {
-                    Value::Num { data: left + right }
+                    Box::new(RTRNum { data: left + right })
                 } else {
-                    Value::Str { data: format!("{}{}", left.stringify(&self.memory), right.stringify(&self.memory)) }
+                    Box::new(RTRStr { data: format!("{}{}", left.stringify(&self.memory), right.stringify(&self.memory)) })
                 }
             BinaryOp::Sub =>
                 if let Some((left, right)) = get_num(left, right) {
-                    Value::Num { data: left - right }
+                    Box::new(RTRNum { data: left - right })
                 } else {
-                    Value::Num { data: f32::NAN }
+                    Box::new(RTRNum { data: f32::NAN })
                 }
             BinaryOp::Mul =>
                 if let Some((left, right)) = get_num(left, right) {
-                    Value::Num { data: left * right }
+                    Box::new(RTRNum { data: left * right })
                 } else {
-                    Value::Num { data: f32::NAN }
+                    Box::new(RTRNum { data: f32::NAN })
                 }
             BinaryOp::Div =>
                 if let Some((left, right)) = get_num(left, right) {
-                    Value::Num { data: left / right }
+                    Box::new(RTRNum { data: left / right })
                 } else {
-                    Value::Num { data: f32::NAN }
+                    Box::new(RTRNum { data: f32::NAN })
                 }
             BinaryOp::Mod =>
                 if let Some((left, right)) = get_num(left, right) {
-                    Value::Num { data: left % right }
+                    Box::new(RTRNum { data: left % right })
                 } else {
-                    Value::Num { data: f32::NAN }
+                    Box::new(RTRNum { data: f32::NAN })
                 }
             BinaryOp::Pow =>
                 if let Some((left, right)) = get_num(left, right) {
-                    Value::Num { data: left.powf(right) }
+                    Box::new(RTRNum { data: left.powf(right) })
                 } else {
-                    Value::Num { data: f32::NAN }
+                    Box::new(RTRNum { data: f32::NAN })
                 }
             
             BinaryOp::Eql =>
-                Value::Bool { data: left.equal(right) },
+                Box::new(RTRBool { data: left.equal(right) }),
             BinaryOp::NotEql =>
-                Value::Bool { data: !left.equal(right) },
+                Box::new(RTRBool { data: !left.equal(right) }),
             
             BinaryOp::Bigger =>
-                Value::Bool { data: left.numbify() > right.numbify() },
+                Box::new(RTRBool { data: left.numbify() > right.numbify() }),
             BinaryOp::BiggerEql =>
-                Value::Bool { data: left.numbify() >= right.numbify() },
+                Box::new(RTRBool { data: left.numbify() >= right.numbify() }),
             BinaryOp::Smaller =>
-                Value::Bool { data: left.numbify() < right.numbify() },
+                Box::new(RTRBool { data: left.numbify() < right.numbify() }),
             BinaryOp::SmallerEql =>
-                Value::Bool { data: left.numbify() <= right.numbify() },
+                Box::new(RTRBool { data: left.numbify() <= right.numbify() }),
             
             BinaryOp::NullishCoalescence =>
-                match left {
-                    Value::Null =>
-                        right.clone(),
-                    
-                    _ => left.clone()
+                if left.is_null() {
+                    right.clone_box()
+                } else {
+                    left.clone_box()
                 }
             
             _ => todo!("{:?}", op)

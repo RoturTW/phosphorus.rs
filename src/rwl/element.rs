@@ -448,6 +448,7 @@ impl Node {
                 *render_data = Some(update_block(&update_ctx, &area, header)?);
             }
             
+            #[allow(clippy::match_same_arms)]
             Node::Script { .. } => (),
             
             Node::Element {

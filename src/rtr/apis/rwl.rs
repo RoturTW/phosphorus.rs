@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use crate::rtr::runtime::memory::Memory;
 use crate::rtr::runtime::scope::Scope;
-use crate::rtr::runtime::value::Value;
 
 pub fn inject(memory: &mut Memory, scope: &mut Scope) {
     //let data = HashMap::new();

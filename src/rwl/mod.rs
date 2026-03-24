@@ -99,6 +99,7 @@ impl RWLInstance {
             ),
         })
     }
+    #[allow(clippy::needless_pass_by_value)]
     fn instance_script(&mut self, content: String) -> Result<(), Error> {
         let mut module = RTRModule::new();
         
